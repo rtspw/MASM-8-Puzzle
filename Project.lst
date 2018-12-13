@@ -1,11 +1,11 @@
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/12/18 23:53:06
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 11:27:03
 main.asm						     Page 1 - 1
 
 
 				.386
 				.model flat,stdcall
 				.stack 4096
-				ExitProcess proto,dwExitCode:dword
+				ExitProcess proto, dwExitCode:dword
 
 
 				INCLUDE Irvine32.inc
@@ -77,6 +77,45 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 			      C 
 			      C 
 			      C 
+				INCLUDE Board.inc
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; Structure Definitions
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000007		      C Board STRUCT
+ 00000000  00000000	      C   VectorPtr DWORD 0
+ 00000004  00		      C 	ZeroPos BYTE 0
+ 00000005  00		      C 	DirLock BYTE 0
+ 00000006  00		      C 	Distance BYTE 0
+			      C Board ENDS
+			      C 
+			      C ; - - - - - - - - - - - - - - - - - - - - - -  - - -
+			      C ; Procedure Prototypes
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; Board Instances
+			      C B_CreateObj PROTO
+			      C ;B_MakeCopy PROTO
+			      C B_DeleteObj PROTO
+			      C B_SetupBoard PROTO
+			      C ; Board Methods
+			      C 
+			      C ; File Methods
+			      C B_ReadFile PROTO
+			      C 
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; Private Procedures
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; 
+			      C 
+			      C 
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; Dependencies
+			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
+			      C ; Irvine32.inc
+			      C ; Macros.inc
+			      C ; ByteVector.inc
+			      C 
+			      C 
+			      C 
 
  00000000			.DATA
 
@@ -93,7 +132,8 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 
  00000000  E8 00000000 E	  call UTIL_SetColor
 
- 00000005  B9 000003E8		  mov ecx, 1000
+					; BYTE VECTOR TESTS - - - - - - - - - - - - - - - - - -
+ 00000005  B9 00000064		  mov ecx, 100
 				  
  0000000A			  L1:
  0000000A  E8 00000000 E	  call BV_CreateObj
@@ -132,20 +172,45 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
  0000004B  50				push eax
  0000004C  E8 00000000 E		call BV_PushBack
 
-
-				  
  00000051  50			  push eax
  00000052  E8 00000000 E	  call BV_DeleteObj
  00000057  E2 B1		  loop L1
 
- 00000059			quit:
- 00000059  E8 00000000 E	  call WaitMsg
+					; - - - - - - - - - - - - - - - - - - - - - - -
+
+
+
+
+					; BOARD TESTS - - - - - - - - - - - - - - - - - 
+ 00000059  B9 000003E8			mov ecx, 1000
+ 0000005E				L2:
+ 0000005E  E8 00000000 E		call B_CreateObj
+
+ 00000063  6A 01			push 1
+ 00000065  6A 02			push 2
+ 00000067  6A 03			push 3
+ 00000069  6A 04			push 4
+ 0000006B  6A 05			push 5
+ 0000006D  6A 06			push 6
+ 0000006F  6A 07			push 7
+ 00000071  6A 08			push 8
+ 00000073  6A 00			push 0
+ 00000075  50				push eax
+ 00000076  E8 00000000 E		call B_SetupBoard
+
+ 0000007B  50				push eax
+ 0000007C  E8 00000000 E		call B_DeleteObj
+ 00000081  E2 DB			loop L2
+					; - - - - - - - - - - - - - - - - - - - - - - -
+
+ 00000083			  quit:
+ 00000083  E8 00000000 E	  call WaitMsg
 				  EXIT
- 0000005E  6A 00	   *	    push   +000000000h
- 00000060  E8 00000000 E   *	    call   ExitProcess
- 00000065			main ENDP
+ 00000088  6A 00	   *	    push   +000000000h
+ 0000008A  E8 00000000 E   *	    call   ExitProcess
+ 0000008F			main ENDP
 				END main
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/12/18 23:53:06
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 11:27:03
 main.asm						     Symbols 2 - 1
 
 
@@ -174,6 +239,11 @@ Structures and Unions:
                 N a m e                  Size
                                          Offset      Type
 
+Board  . . . . . . . . . . . . .	 00000007
+  VectorPtr  . . . . . . . . . .	 00000000	 DWord
+  ZeroPos  . . . . . . . . . . .	 00000004	 Byte
+  DirLock  . . . . . . . . . . .	 00000005	 Byte
+  Distance . . . . . . . . . . .	 00000006	 Byte
 ByteVector . . . . . . . . . . .	 00000008
   Root . . . . . . . . . . . . .	 00000000	 DWord
   VectorSize . . . . . . . . . .	 00000004	 Word
@@ -262,7 +332,7 @@ Segments and Groups:
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
 _DATA  . . . . . . . . . . . . .	32 Bit	 0000001B DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000065 DWord	  Public  'CODE'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000008F DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -276,6 +346,10 @@ BV_MakeCopy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 BV_Pop . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 BV_PushBack  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 BV_Swap  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_CreateObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_DeleteObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_ReadFile . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_SetupBoard . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -377,9 +451,10 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000065 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000008F Public STDCALL
   L1 . . . . . . . . . . . . . .	L Near	 0000000A _TEXT	
-  quit . . . . . . . . . . . . .	L Near	 00000059 _TEXT	
+  L2 . . . . . . . . . . . . . .	L Near	 0000005E _TEXT	
+  quit . . . . . . . . . . . . .	L Near	 00000083 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C

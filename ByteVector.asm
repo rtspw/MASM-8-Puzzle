@@ -13,7 +13,7 @@ INCLUDE ByteVector.inc
 
 .CODE
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_CreateObj PROC uses ecx
+BV_CreateObj PROC uses ecx edx
 ; Allocates 8 Bytes and creates bytevector instance
 ; @return EAX - Address of new Vector Instance
 ; - - - - - - - - - - - - - - - - - - - - - - - - -

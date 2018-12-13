@@ -1,7 +1,7 @@
 .386
 .model flat,stdcall
 .stack 4096
-ExitProcess proto,dwExitCode:dword
+ExitProcess proto, dwExitCode:dword
 
 
 INCLUDE Irvine32.inc
@@ -9,6 +9,7 @@ INCLUDE Macros.inc
 
 INCLUDE UtilProcedures.inc
 INCLUDE ByteVector.inc
+INCLUDE Board.inc
 
 .DATA
 
@@ -23,7 +24,8 @@ main PROC
 
   call UTIL_SetColor
 
-  mov ecx, 1000
+	; BYTE VECTOR TESTS - - - - - - - - - - - - - - - - - -
+  mov ecx, 100
   
   L1:
   call BV_CreateObj
@@ -62,13 +64,38 @@ main PROC
 	push eax
 	call BV_PushBack
 
-
-  
   push eax
   call BV_DeleteObj
   loop L1
 
-quit:
+	; - - - - - - - - - - - - - - - - - - - - - - -
+
+
+
+
+	; BOARD TESTS - - - - - - - - - - - - - - - - - 
+	mov ecx, 1000
+	L2:
+	call B_CreateObj
+
+	push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	push 0
+	push eax
+ 	call B_SetupBoard
+
+	push eax
+	call B_DeleteObj
+	loop L2
+	; - - - - - - - - - - - - - - - - - - - - - - -
+
+  quit:
   call WaitMsg
   EXIT
 main ENDP
