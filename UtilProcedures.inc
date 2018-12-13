@@ -1,1 +1,2 @@
 UTIL_SetColor PROTO
+UTIL_ReadString PROTO

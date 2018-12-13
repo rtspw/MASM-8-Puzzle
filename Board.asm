@@ -15,6 +15,11 @@ INCLUDE Board.inc
 	; 8 Bytes (size is 7 bytes)
   mainByteSize DWORD sizeof Board + 1
 
+	; Max buffer size for read file
+	BUFFERSIZE = 9
+	buffer BYTE BUFFERSIZE+1 DUP(?)
+
+
 .CODE
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_CreateObj PROC uses ecx esi edx
@@ -131,4 +136,92 @@ B_SetupBoard PROC uses eax ebx ecx ebp esi
 B_SetupBoard ENDP
 
 
+
+
+
+
+; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_ReadFile PROC uses eax ebx ecx edx ebp esi
+; Reads a board from a file and appends it to a Board object
+; Note: The board object should have an empty byte vector!
+; @param this_ptr - Address of instance
+; @param file_name - Name of file to open (the offset)
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 8, 0 ; TWO LOCAL
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 32]
+	file_name EQU [ebp + 36]
+
+	; Locals
+	ByteVectorPtr EQU [ebp - 4]
+	FileHandle EQU [ebp - 8]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+	BufferIter EQU esi
+  ; *  *  *  *  *  *  *  *  *
+
+	; Stores board and vector pointers
+	mov ebx, this_ptr
+	mov eax, Instance.VectorPtr
+	mov ByteVectorPtr, eax
+
+	; Gets file handle for given file name
+	mov edx, file_name
+	call OpenInputFile
+
+	.IF (eax == INVALID_HANDLE_VALUE)
+	  mWriteLn "Error in B_ReadFile! Failed to open file"
+		jmp QUIT
+	.ENDIF
+
+	mov FileHandle, eax
+
+	; Reads file and puts result in buffer byte array
+	; Sets carry flag to true if it throws
+	; (This mutates EAX, ECX and EDX!)
+	mov eax, FileHandle
+	mov edx, OFFSET buffer
+	mov ecx, BUFFERSIZE
+	call ReadFromFile
+	jc SHOWERRORMSG
+
+	; Adds null terminator at the end
+	mov buffer[9], 0
+
+	; DEBUG: Write buffer to console
+	mov edx, OFFSET buffer
+	call WriteString
+	call CRLF
+
+
+	; Sets ESI to the address of the dynamic array
+	; Then pushes each byte into the stack 
+	mov ecx, 9
+	mov BufferIter, OFFSET buffer
+
+	FILETOBOARDLOOP:
+	movzx eax, BYTE PTR [BufferIter]
+	sub eax, 48  ; ASCII Number to Int
+	push eax
+	call WriteInt
+	call CRLF
+	inc BufferIter
+	loop FILETOBOARDLOOP
+
+	mov ebx, this_ptr
+	push ebx
+  call B_SetupBoard
+
+	jmp QUIT
+	SHOWERRORMSG:
+	  call WriteWindowsMsg
+
+	QUIT:
+	LEAVE
+	RET 8 ; TWO PARAM
+B_ReadFile ENDP
 end
