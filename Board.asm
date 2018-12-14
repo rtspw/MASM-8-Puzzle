@@ -877,7 +877,7 @@ B_GenerateChildren PROC uses eax ebx ecx edx ebp
 
 	movzx eax, Instance.DirLock
 	.IF (eax == DIR_LEFT)
-	  jmp MAKERIGHT
+	  jmp MAKEDOWN
 	.ENDIF
 
 	; Makes a copy of the board and swaps right

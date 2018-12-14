@@ -24,8 +24,9 @@ userInput BYTE USER_INPUT_LENGTH+1 DUP (?)
 GameBoardPtr DWORD ?
 numOfMoves DWORD 0
 
-testmh dword ?
-testb dword ?
+; Base board for pathfinding
+currentBoard DWORD ?
+priorityQueue DWORD ?
 
 .CODE
 
@@ -50,32 +51,56 @@ main PROC
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	ALGSTART:
 
-	mov ecx, 100
-	TESTLOOP:
+	; Creates board from file
+	call ProcessFilenameInput
+	mov currentBoard, eax
+  
+	push currentBoard
+	call B_GetDistance
+	.IF (eax == 0)
+	  jmp TRIVIALSOLUTION
+	.ENDIF
 
 	call MH_CreateObj
-	mov testmh, eax
+	mov priorityQueue, eax
 
-	call B_CreateObj
-	mov testb, eax
-	push 1
-	push 2
-	push 3
-	push 4
-	push 5
-	push 6
-	push 7
-	push 8
-	push 0
-	push testb
-	call B_SetupBoard
+	STARTPATH:
 
-	push testmh
-	push testb
+	; Generate all possible children into minheap
+	push priorityQueue
+	push currentBoard
 	call B_GenerateChildren
 
-	loop TESTLOOP
+	; Delete current board
+	push currentBoard
+	call B_DeleteObj
 
+	; Set new current board
+	push priorityQueue
+	call MH_Remove
+	mov currentBoard, eax
+
+	; Checks for the success condition
+	push currentBoard
+	call B_GetDistance
+	.IF (eax == 0)
+	  jmp SOLUTIONFOUND
+	.ENDIF
+
+	jmp STARTPATH
+	SOLUTIONFOUND:
+	  mWriteLn "SOLUTION FOUND!!!"
+		mWriteLn "-------------------"
+		mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
+		mWriteLn "-------------------"
+		push currentBoard
+		call B_PrintMoves
+		call CRLF
+	jmp FINISHED
+	TRIVIALSOLUTION:
+	  mWriteLn "Your board is already solved!"
+
+	FINISHED:
 	jmp quit
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/14/18 15:15:23
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/14/18 15:40:54
 main.asm						     Page 1 - 1
 
 
@@ -227,8 +227,9 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
  00000067 00000000		GameBoardPtr DWORD ?
  0000006B 00000000		numOfMoves DWORD 0
 
- 0000006F 00000000		testmh dword ?
- 00000073 00000000		testb dword ?
+				; Base board for pathfinding
+ 0000006F 00000000		currentBoard DWORD ?
+ 00000073 00000000		priorityQueue DWORD ?
 
  00000000			.CODE
 
@@ -236,155 +237,102 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 
  00000000  E8 00000000 E	  call UTIL_SetColor
 
- 00000005  E8 00000216			call PrintTitleLogo
+ 00000005  E8 000002A1			call PrintTitleLogo
 
- 0000000A  E8 00000234			call PrintMetaMenu
- 0000000F  E8 00000252			call ProcessMetaUserInput
+ 0000000A  E8 000002BF			call PrintMetaMenu
+ 0000000F  E8 000002DD			call ProcessMetaUserInput
 
 					.IF (eax == 1)
  00000014  83 F8 01	   *	    cmp    eax, 001h
  00000017  75 04	   *	    jne    @C0001
- 00000019  EB 0B			  jmp ALGSTART
+ 00000019  EB 11			  jmp ALGSTART
 					.ELSEIF (eax == 2)
- 0000001B  EB 07	   *	    jmp    @C0003
+ 0000001B  EB 0A	   *	    jmp    @C0003
  0000001D		   *@C0001:
  0000001D  83 F8 02	   *	    cmp    eax, 002h
- 00000020  75 02	   *	    jne    @C0004
- 00000022  EB 50			  jmp GAMESTART
+ 00000020  75 05	   *	    jne    @C0004
+ 00000022  E9 000000D8			  jmp GAMESTART
 					.ENDIF
- 00000024		   *@C0004:
- 00000024		   *@C0003:
- 00000024  EB 4E			jmp GAMESTART
+ 00000027		   *@C0004:
+ 00000027		   *@C0003:
+ 00000027  E9 000000D3			jmp GAMESTART
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 				; PATHFINDING
 				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
- 00000026				ALGSTART:
+ 0000002C				ALGSTART:
 
- 00000026  B9 00000064			mov ecx, 100
- 0000002B				TESTLOOP:
-
- 0000002B  E8 00000000 E		call MH_CreateObj
- 00000030  A3 0000006F R		mov testmh, eax
-
- 00000035  E8 00000000 E		call B_CreateObj
- 0000003A  A3 00000073 R		mov testb, eax
- 0000003F  6A 01			push 1
- 00000041  6A 02			push 2
- 00000043  6A 03			push 3
- 00000045  6A 04			push 4
- 00000047  6A 05			push 5
- 00000049  6A 06			push 6
- 0000004B  6A 07			push 7
- 0000004D  6A 08			push 8
- 0000004F  6A 00			push 0
- 00000051  FF 35 00000073 R		push testb
- 00000057  E8 00000000 E		call B_SetupBoard
-
- 0000005C  FF 35 0000006F R		push testmh
- 00000062  FF 35 00000073 R		push testb
- 00000068  E8 00000000 E		call B_GenerateChildren
-
- 0000006D  E2 BC			loop TESTLOOP
-
- 0000006F  E9 000001A5			jmp quit
-
-				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-				 ;ALL GAME LINES BELOW
-				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
- 00000074				GAMESTART:
- 00000074  E8 00000237			call PrintStartMenu
- 00000079  E8 00000255			call ProcessStartUserInput
-					.IF (eax == 1)
- 0000007E  83 F8 01	   *	    cmp    eax, 001h
- 00000081  75 13	   *	    jne    @C0006
- 00000083				  STARTNEWGAME:
-
- 00000083  C7 05 0000006B R			mov numOfMoves, 0
-	   00000000
- 0000008D  E8 0000028B			  call ProcessFilenameInput
- 00000092  EB 0C				jmp BOARDCREATED
-
-					.ELSEIF (eax == 2)
- 00000094  EB 0A	   *	    jmp    @C0008
- 00000096		   *@C0006:
- 00000096  83 F8 02	   *	    cmp    eax, 002h
- 00000099  75 05	   *	    jne    @C0009
- 0000009B  E9 00000179			  jmp quit
-
+					; Creates board from file
+ 0000002C  E8 00000377			call ProcessFilenameInput
+ 00000031  A3 0000006F R		mov currentBoard, eax
+				  
+ 00000036  FF 35 0000006F R		push currentBoard
+ 0000003C  E8 00000000 E		call B_GetDistance
+					.IF (eax == 0)
+ 00000041  0B C0	   *	    or	eax, eax
+ 00000043  75 05	   *	    jne    @C0006
+ 00000045  E9 0000009F			  jmp TRIVIALSOLUTION
 					.ENDIF
- 000000A0		   *@C0009:
- 000000A0		   *@C0008:
+ 0000004A		   *@C0006:
 
- 000000A0				BOARDCREATED:
- 000000A0  A3 00000067 R		mov GameBoardPtr, eax
+ 0000004A  E8 00000000 E		call MH_CreateObj
+ 0000004F  A3 00000073 R		mov priorityQueue, eax
 
- 000000A5				GAMELOOP:
- 000000A5  E8 00000000 E		  call CLRSCR
+ 00000054				STARTPATH:
 
- 000000AA  FF 05 0000006B R			inc numOfMoves
+					; Generate all possible children into minheap
+ 00000054  FF 35 00000073 R		push priorityQueue
+ 0000005A  FF 35 0000006F R		push currentBoard
+ 00000060  E8 00000000 E		call B_GenerateChildren
 
-						; Check for win condition
- 000000B0  FF 35 00000067 R			push GameBoardPtr
- 000000B6  E8 00000000 E			call B_GetDistance
-						.IF (eax == 0)
- 000000BB  0B C0	   *	    or	eax, eax
- 000000BD  75 05	   *	    jne    @C000B
- 000000BF  E9 000000E8				  jmp WIN
-						.ENDIF
- 000000C4		   *@C000B:
+					; Delete current board
+ 00000065  FF 35 0000006F R		push currentBoard
+ 0000006B  E8 00000000 E		call B_DeleteObj
 
- 000000C4  EB 05				jmp ENDNONMOVEENTRY
- 000000C6					NONMOVEENTRY:
- 000000C6  E8 00000000 E			  call CLRSCR
- 000000CB					ENDNONMOVEENTRY:
+					; Set new current board
+ 00000070  FF 35 00000073 R		push priorityQueue
+ 00000076  E8 00000000 E		call MH_Remove
+ 0000007B  A3 0000006F R		mov currentBoard, eax
 
-						; Print board representation
- 000000CB  FF 35 00000067 R		  push GameBoardPtr
- 000000D1  E8 00000000 E			call B_PrintBoard
+					; Checks for the success condition
+ 00000080  FF 35 0000006F R		push currentBoard
+ 00000086  E8 00000000 E		call B_GetDistance
+					.IF (eax == 0)
+ 0000008B  0B C0	   *	    or	eax, eax
+ 0000008D  75 02	   *	    jne    @C0008
+ 0000008F  EB 02			  jmp SOLUTIONFOUND
+					.ENDIF
+ 00000091		   *@C0008:
 
-						; Print and process selection
- 000000D6  E8 000002A0			  call PrintGameMenu
- 000000DB  E8 00000313				call ProcessGameUserInput
-						.IF (eax == 1)
- 000000E0  83 F8 01	   *	    cmp    eax, 001h
- 000000E3  75 07	   *	    jne    @C000D
- 000000E5  EB 9C					jmp STARTNEWGAME
-
-						.ELSEIF (eax == 2)
- 000000E7  E9 000000BE	   *	    jmp    @C000F
- 000000EC		   *@C000D:
- 000000EC  83 F8 02	   *	    cmp    eax, 002h
- 000000EF  75 56	   *	    jne    @C0010
- 000000F1  E8 00000000 E			  call CLRSCR
-							mWriteLn "Your move history: "
+ 00000091  EB C1			jmp STARTPATH
+ 00000093				SOLUTIONFOUND:
+					  mWriteLn "SOLUTION FOUND!!!"
  00000077		     2		.data		
- 00000077 59 6F 75 72 20     2		??0000 BYTE "Your move history: ",0	
-	   6D 6F 76 65 20
-	   68 69 73 74 6F
-	   72 79 3A 20 00
- 000000F6		     2		.code
- 000000F6  52		     2		push	edx
- 000000F7  BA 00000077 R     2		mov	edx,OFFSET ??0000
- 000000FC  E8 00000000 E     2		call	WriteString
- 00000101  5A		     2		pop	edx
- 00000102  E8 00000000 E     1		call	Crlf
-							mWriteLn "-------------------"
- 0000008B		     2		.data		
- 0000008B 2D 2D 2D 2D 2D     2		??0001 BYTE "-------------------",0	
+ 00000077 53 4F 4C 55 54     2		??0000 BYTE "SOLUTION FOUND!!!",0	
+	   49 4F 4E 20 46
+	   4F 55 4E 44 21
+	   21 21 00
+ 00000093		     2		.code
+ 00000093  52		     2		push	edx
+ 00000094  BA 00000077 R     2		mov	edx,OFFSET ??0000
+ 00000099  E8 00000000 E     2		call	WriteString
+ 0000009E  5A		     2		pop	edx
+ 0000009F  E8 00000000 E     1		call	Crlf
+						mWriteLn "-------------------"
+ 00000089		     2		.data		
+ 00000089 2D 2D 2D 2D 2D     2		??0001 BYTE "-------------------",0	
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 00
- 00000107		     2		.code
- 00000107  52		     2		push	edx
- 00000108  BA 0000008B R     2		mov	edx,OFFSET ??0001
- 0000010D  E8 00000000 E     2		call	WriteString
- 00000112  5A		     2		pop	edx
- 00000113  E8 00000000 E     1		call	Crlf
-							mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
- 0000009F		     2		.data		
- 0000009F 31 3A 20 55 70     2		??0002 BYTE "1: Up | 2: Right | 3: Down | 4: Left",0	
+ 000000A4		     2		.code
+ 000000A4  52		     2		push	edx
+ 000000A5  BA 00000089 R     2		mov	edx,OFFSET ??0001
+ 000000AA  E8 00000000 E     2		call	WriteString
+ 000000AF  5A		     2		pop	edx
+ 000000B0  E8 00000000 E     1		call	Crlf
+						mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
+ 0000009D		     2		.data		
+ 0000009D 31 3A 20 55 70     2		??0002 BYTE "1: Up | 2: Right | 3: Down | 4: Left",0	
 	   20 7C 20 32 3A
 	   20 52 69 67 68
 	   74 20 7C 20 33
@@ -392,188 +340,332 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 	   6E 20 7C 20 34
 	   3A 20 4C 65 66
 	   74 00
- 00000118		     2		.code
- 00000118  52		     2		push	edx
- 00000119  BA 0000009F R     2		mov	edx,OFFSET ??0002
- 0000011E  E8 00000000 E     2		call	WriteString
- 00000123  5A		     2		pop	edx
- 00000124  E8 00000000 E     1		call	Crlf
- 00000129  E8 00000000 E				call CRLF
+ 000000B5		     2		.code
+ 000000B5  52		     2		push	edx
+ 000000B6  BA 0000009D R     2		mov	edx,OFFSET ??0002
+ 000000BB  E8 00000000 E     2		call	WriteString
+ 000000C0  5A		     2		pop	edx
+ 000000C1  E8 00000000 E     1		call	Crlf
+						mWriteLn "-------------------"
+ 000000C2		     2		.data		
+ 000000C2 2D 2D 2D 2D 2D     2		??0003 BYTE "-------------------",0	
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 00
+ 000000C6		     2		.code
+ 000000C6  52		     2		push	edx
+ 000000C7  BA 000000C2 R     2		mov	edx,OFFSET ??0003
+ 000000CC  E8 00000000 E     2		call	WriteString
+ 000000D1  5A		     2		pop	edx
+ 000000D2  E8 00000000 E     1		call	Crlf
+ 000000D7  FF 35 0000006F R			push currentBoard
+ 000000DD  E8 00000000 E			call B_PrintMoves
+ 000000E2  E8 00000000 E			call CRLF
+ 000000E7  EB 11			jmp FINISHED
+ 000000E9				TRIVIALSOLUTION:
+					  mWriteLn "Your board is already solved!"
+ 000000D6		     2		.data		
+ 000000D6 59 6F 75 72 20     2		??0004 BYTE "Your board is already solved!",0	
+	   62 6F 61 72 64
+	   20 69 73 20 61
+	   6C 72 65 61 64
+	   79 20 73 6F 6C
+	   76 65 64 21 00
+ 000000E9		     2		.code
+ 000000E9  52		     2		push	edx
+ 000000EA  BA 000000D6 R     2		mov	edx,OFFSET ??0004
+ 000000EF  E8 00000000 E     2		call	WriteString
+ 000000F4  5A		     2		pop	edx
+ 000000F5  E8 00000000 E     1		call	Crlf
 
- 0000012E  FF 35 00000067 R				push GameBoardPtr
- 00000134  E8 00000000 E				call B_PrintMoves
+ 000000FA				FINISHED:
+ 000000FA  E9 000001A5			jmp quit
 
- 00000139  E8 00000000 E				call CRLF
- 0000013E  E8 00000000 E				call WaitMsg
- 00000143  EB 81					jmp NONMOVEENTRY
+				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+				 ;ALL GAME LINES BELOW
+				; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+ 000000FF				GAMESTART:
+ 000000FF  E8 00000237			call PrintStartMenu
+ 00000104  E8 00000255			call ProcessStartUserInput
+					.IF (eax == 1)
+ 00000109  83 F8 01	   *	    cmp    eax, 001h
+ 0000010C  75 13	   *	    jne    @C000A
+ 0000010E				  STARTNEWGAME:
+
+ 0000010E  C7 05 0000006B R			mov numOfMoves, 0
+	   00000000
+ 00000118  E8 0000028B			  call ProcessFilenameInput
+ 0000011D  EB 0C				jmp BOARDCREATED
+
+					.ELSEIF (eax == 2)
+ 0000011F  EB 0A	   *	    jmp    @C000C
+ 00000121		   *@C000A:
+ 00000121  83 F8 02	   *	    cmp    eax, 002h
+ 00000124  75 05	   *	    jne    @C000D
+ 00000126  E9 00000179			  jmp quit
+
+					.ENDIF
+ 0000012B		   *@C000D:
+ 0000012B		   *@C000C:
+
+ 0000012B				BOARDCREATED:
+ 0000012B  A3 00000067 R		mov GameBoardPtr, eax
+
+ 00000130				GAMELOOP:
+ 00000130  E8 00000000 E		  call CLRSCR
+
+ 00000135  FF 05 0000006B R			inc numOfMoves
+
+						; Check for win condition
+ 0000013B  FF 35 00000067 R			push GameBoardPtr
+ 00000141  E8 00000000 E			call B_GetDistance
+						.IF (eax == 0)
+ 00000146  0B C0	   *	    or	eax, eax
+ 00000148  75 05	   *	    jne    @C000F
+ 0000014A  E9 000000E8				  jmp WIN
+						.ENDIF
+ 0000014F		   *@C000F:
+
+ 0000014F  EB 05				jmp ENDNONMOVEENTRY
+ 00000151					NONMOVEENTRY:
+ 00000151  E8 00000000 E			  call CLRSCR
+ 00000156					ENDNONMOVEENTRY:
+
+						; Print board representation
+ 00000156  FF 35 00000067 R		  push GameBoardPtr
+ 0000015C  E8 00000000 E			call B_PrintBoard
+
+						; Print and process selection
+ 00000161  E8 000002A0			  call PrintGameMenu
+ 00000166  E8 00000313				call ProcessGameUserInput
+						.IF (eax == 1)
+ 0000016B  83 F8 01	   *	    cmp    eax, 001h
+ 0000016E  75 07	   *	    jne    @C0011
+ 00000170  EB 9C					jmp STARTNEWGAME
+
+						.ELSEIF (eax == 2)
+ 00000172  E9 000000BE	   *	    jmp    @C0013
+ 00000177		   *@C0011:
+ 00000177  83 F8 02	   *	    cmp    eax, 002h
+ 0000017A  75 56	   *	    jne    @C0014
+ 0000017C  E8 00000000 E			  call CLRSCR
+							mWriteLn "Your move history: "
+ 000000F4		     2		.data		
+ 000000F4 59 6F 75 72 20     2		??0005 BYTE "Your move history: ",0	
+	   6D 6F 76 65 20
+	   68 69 73 74 6F
+	   72 79 3A 20 00
+ 00000181		     2		.code
+ 00000181  52		     2		push	edx
+ 00000182  BA 000000F4 R     2		mov	edx,OFFSET ??0005
+ 00000187  E8 00000000 E     2		call	WriteString
+ 0000018C  5A		     2		pop	edx
+ 0000018D  E8 00000000 E     1		call	Crlf
+							mWriteLn "-------------------"
+ 00000108		     2		.data		
+ 00000108 2D 2D 2D 2D 2D     2		??0006 BYTE "-------------------",0	
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 00
+ 00000192		     2		.code
+ 00000192  52		     2		push	edx
+ 00000193  BA 00000108 R     2		mov	edx,OFFSET ??0006
+ 00000198  E8 00000000 E     2		call	WriteString
+ 0000019D  5A		     2		pop	edx
+ 0000019E  E8 00000000 E     1		call	Crlf
+							mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
+ 0000011C		     2		.data		
+ 0000011C 31 3A 20 55 70     2		??0007 BYTE "1: Up | 2: Right | 3: Down | 4: Left",0	
+	   20 7C 20 32 3A
+	   20 52 69 67 68
+	   74 20 7C 20 33
+	   3A 20 44 6F 77
+	   6E 20 7C 20 34
+	   3A 20 4C 65 66
+	   74 00
+ 000001A3		     2		.code
+ 000001A3  52		     2		push	edx
+ 000001A4  BA 0000011C R     2		mov	edx,OFFSET ??0007
+ 000001A9  E8 00000000 E     2		call	WriteString
+ 000001AE  5A		     2		pop	edx
+ 000001AF  E8 00000000 E     1		call	Crlf
+ 000001B4  E8 00000000 E				call CRLF
+
+ 000001B9  FF 35 00000067 R				push GameBoardPtr
+ 000001BF  E8 00000000 E				call B_PrintMoves
+
+ 000001C4  E8 00000000 E				call CRLF
+ 000001C9  E8 00000000 E				call WaitMsg
+ 000001CE  EB 81					jmp NONMOVEENTRY
 
 						.ELSEIF (eax == 3)
- 00000145  EB 63	   *	    jmp    @C0012
- 00000147		   *@C0010:
- 00000147  83 F8 03	   *	    cmp    eax, 003h
- 0000014A  75 12	   *	    jne    @C0013
- 0000014C  FF 35 00000067 R			  push GameBoardPtr
- 00000152  E8 00000000 E				call B_SwapUp
- 00000157  E9 FFFFFF49					jmp GAMELOOP
+ 000001D0  EB 63	   *	    jmp    @C0016
+ 000001D2		   *@C0014:
+ 000001D2  83 F8 03	   *	    cmp    eax, 003h
+ 000001D5  75 12	   *	    jne    @C0017
+ 000001D7  FF 35 00000067 R			  push GameBoardPtr
+ 000001DD  E8 00000000 E				call B_SwapUp
+ 000001E2  E9 FFFFFF49					jmp GAMELOOP
 
 						.ELSEIF (eax == 4)
- 0000015C  EB 4C	   *	    jmp    @C0015
- 0000015E		   *@C0013:
- 0000015E  83 F8 04	   *	    cmp    eax, 004h
- 00000161  75 12	   *	    jne    @C0016
- 00000163  FF 35 00000067 R			  push GameBoardPtr
- 00000169  E8 00000000 E				call B_SwapDown
- 0000016E  E9 FFFFFF32					jmp GAMELOOP
+ 000001E7  EB 4C	   *	    jmp    @C0019
+ 000001E9		   *@C0017:
+ 000001E9  83 F8 04	   *	    cmp    eax, 004h
+ 000001EC  75 12	   *	    jne    @C001A
+ 000001EE  FF 35 00000067 R			  push GameBoardPtr
+ 000001F4  E8 00000000 E				call B_SwapDown
+ 000001F9  E9 FFFFFF32					jmp GAMELOOP
 
 						.ELSEIF (eax == 5)
- 00000173  EB 35	   *	    jmp    @C0018
- 00000175		   *@C0016:
- 00000175  83 F8 05	   *	    cmp    eax, 005h
- 00000178  75 12	   *	    jne    @C0019
- 0000017A  FF 35 00000067 R			  push GameBoardPtr
- 00000180  E8 00000000 E				call B_SwapLeft
- 00000185  E9 FFFFFF1B					jmp GAMELOOP
+ 000001FE  EB 35	   *	    jmp    @C001C
+ 00000200		   *@C001A:
+ 00000200  83 F8 05	   *	    cmp    eax, 005h
+ 00000203  75 12	   *	    jne    @C001D
+ 00000205  FF 35 00000067 R			  push GameBoardPtr
+ 0000020B  E8 00000000 E				call B_SwapLeft
+ 00000210  E9 FFFFFF1B					jmp GAMELOOP
 
 						.ELSEIF (eax == 6)
- 0000018A  EB 1E	   *	    jmp    @C001B
- 0000018C		   *@C0019:
- 0000018C  83 F8 06	   *	    cmp    eax, 006h
- 0000018F  75 12	   *	    jne    @C001C
- 00000191  FF 35 00000067 R			  push GameBoardPtr
- 00000197  E8 00000000 E				call B_SwapRight
- 0000019C  E9 FFFFFF04					jmp GAMELOOP
+ 00000215  EB 1E	   *	    jmp    @C001F
+ 00000217		   *@C001D:
+ 00000217  83 F8 06	   *	    cmp    eax, 006h
+ 0000021A  75 12	   *	    jne    @C0020
+ 0000021C  FF 35 00000067 R			  push GameBoardPtr
+ 00000222  E8 00000000 E				call B_SwapRight
+ 00000227  E9 FFFFFF04					jmp GAMELOOP
 
 						.ELSEIF (eax == 7)
- 000001A1  EB 07	   *	    jmp    @C001E
- 000001A3		   *@C001C:
- 000001A3  83 F8 07	   *	    cmp    eax, 007h
- 000001A6  75 02	   *	    jne    @C001F
- 000001A8  EB 6F					jmp quit
+ 0000022C  EB 07	   *	    jmp    @C0022
+ 0000022E		   *@C0020:
+ 0000022E  83 F8 07	   *	    cmp    eax, 007h
+ 00000231  75 02	   *	    jne    @C0023
+ 00000233  EB 6F					jmp quit
 
 						.ENDIF
- 000001AA		   *@C001F:
- 000001AA		   *@C001E:
- 000001AA		   *@C001B:
- 000001AA		   *@C0018:
- 000001AA		   *@C0015:
- 000001AA		   *@C0012:
- 000001AA		   *@C000F:
+ 00000235		   *@C0023:
+ 00000235		   *@C0022:
+ 00000235		   *@C001F:
+ 00000235		   *@C001C:
+ 00000235		   *@C0019:
+ 00000235		   *@C0016:
+ 00000235		   *@C0013:
 						
- 000001AA				ENDGAMELOOP:
+ 00000235				ENDGAMELOOP:
 
- 000001AA  EB 6D			jmp quit
- 000001AC				WIN:
+ 00000235  EB 6D			jmp quit
+ 00000237				WIN:
 						mWriteLn "CONGRATULATIONS! YOU WIN!"
- 000000C4		     2		.data		
- 000000C4 43 4F 4E 47 52     2		??0003 BYTE "CONGRATULATIONS! YOU WIN!",0	
+ 00000141		     2		.data		
+ 00000141 43 4F 4E 47 52     2		??0008 BYTE "CONGRATULATIONS! YOU WIN!",0	
 	   41 54 55 4C 41
 	   54 49 4F 4E 53
 	   21 20 59 4F 55
 	   20 57 49 4E 21
 	   00
- 000001AC		     2		.code
- 000001AC  52		     2		push	edx
- 000001AD  BA 000000C4 R     2		mov	edx,OFFSET ??0003
- 000001B2  E8 00000000 E     2		call	WriteString
- 000001B7  5A		     2		pop	edx
- 000001B8  E8 00000000 E     1		call	Crlf
+ 00000237		     2		.code
+ 00000237  52		     2		push	edx
+ 00000238  BA 00000141 R     2		mov	edx,OFFSET ??0008
+ 0000023D  E8 00000000 E     2		call	WriteString
+ 00000242  5A		     2		pop	edx
+ 00000243  E8 00000000 E     1		call	Crlf
 						mWrite "Number of moves: "
- 000000DE		     1		.data		
- 000000DE 4E 75 6D 62 65     1		??0004 BYTE "Number of moves: ",0	
+ 0000015B		     1		.data		
+ 0000015B 4E 75 6D 62 65     1		??0009 BYTE "Number of moves: ",0	
 	   72 20 6F 66 20
 	   6D 6F 76 65 73
 	   3A 20 00
- 000001BD		     1		.code
- 000001BD  52		     1		push	edx
- 000001BE  BA 000000DE R     1		mov	edx,OFFSET ??0004
- 000001C3  E8 00000000 E     1		call	WriteString
- 000001C8  5A		     1		pop	edx
+ 00000248		     1		.code
+ 00000248  52		     1		push	edx
+ 00000249  BA 0000015B R     1		mov	edx,OFFSET ??0009
+ 0000024E  E8 00000000 E     1		call	WriteString
+ 00000253  5A		     1		pop	edx
 
 						; Prints number of moves taken
- 000001C9  FF 0D 0000006B R			dec numOfMoves
- 000001CF  A1 0000006B R			mov eax, numOfMoves
- 000001D4  E8 00000000 E			call WriteDec
- 000001D9  E8 00000000 E			call CRLF
+ 00000254  FF 0D 0000006B R			dec numOfMoves
+ 0000025A  A1 0000006B R			mov eax, numOfMoves
+ 0000025F  E8 00000000 E			call WriteDec
+ 00000264  E8 00000000 E			call CRLF
 
 						; Print Move vector
- 000001DE  E8 00000000 E			call CRLF
+ 00000269  E8 00000000 E			call CRLF
 						mWriteLn "Up: 1, Right: 2, Down: 3, Left: 4"
- 000000F0		     2		.data		
- 000000F0 55 70 3A 20 31     2		??0005 BYTE "Up: 1, Right: 2, Down: 3, Left: 4",0	
+ 0000016D		     2		.data		
+ 0000016D 55 70 3A 20 31     2		??000A BYTE "Up: 1, Right: 2, Down: 3, Left: 4",0	
 	   2C 20 52 69 67
 	   68 74 3A 20 32
 	   2C 20 44 6F 77
 	   6E 3A 20 33 2C
 	   20 4C 65 66 74
 	   3A 20 34 00
- 000001E3		     2		.code
- 000001E3  52		     2		push	edx
- 000001E4  BA 000000F0 R     2		mov	edx,OFFSET ??0005
- 000001E9  E8 00000000 E     2		call	WriteString
- 000001EE  5A		     2		pop	edx
- 000001EF  E8 00000000 E     1		call	Crlf
+ 0000026E		     2		.code
+ 0000026E  52		     2		push	edx
+ 0000026F  BA 0000016D R     2		mov	edx,OFFSET ??000A
+ 00000274  E8 00000000 E     2		call	WriteString
+ 00000279  5A		     2		pop	edx
+ 0000027A  E8 00000000 E     1		call	Crlf
 
- 000001F4  FF 35 00000067 R			push GameBoardPtr
- 000001FA  E8 00000000 E			call B_PrintMoves
- 000001FF  E8 00000000 E			call CRLF
- 00000204  E8 00000000 E			call CRLF
+ 0000027F  FF 35 00000067 R			push GameBoardPtr
+ 00000285  E8 00000000 E			call B_PrintMoves
+ 0000028A  E8 00000000 E			call CRLF
+ 0000028F  E8 00000000 E			call CRLF
 
 						; Deletes board object
- 00000209  FF 35 00000067 R			push GameBoardPtr
- 0000020F  E8 00000000 E			call B_DeleteObj
+ 00000294  FF 35 00000067 R			push GameBoardPtr
+ 0000029A  E8 00000000 E			call B_DeleteObj
 
 						; Restarts to start menu
- 00000214  E9 FFFFFE5B				jmp GAMESTART
+ 0000029F  E9 FFFFFE5B				jmp GAMESTART
 
- 00000219			  quit:
+ 000002A4			  quit:
 
 				  EXIT
- 00000219  6A 00	   *	    push   +000000000h
- 0000021B  E8 00000000 E   *	    call   ExitProcess
- 00000220			main ENDP
+ 000002A4  6A 00	   *	    push   +000000000h
+ 000002A6  E8 00000000 E   *	    call   ExitProcess
+ 000002AB			main ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 00000220			PrintTitleLogo PROC
+ 000002AB			PrintTitleLogo PROC
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 				  mWriteLn "WELCOME TO THE MASM SLIDING PUZZLE"
- 00000112		     2		.data		
- 00000112 57 45 4C 43 4F     2		??0006 BYTE "WELCOME TO THE MASM SLIDING PUZZLE",0	
+ 0000018F		     2		.data		
+ 0000018F 57 45 4C 43 4F     2		??000B BYTE "WELCOME TO THE MASM SLIDING PUZZLE",0	
 	   4D 45 20 54 4F
 	   20 54 48 45 20
 	   4D 41 53 4D 20
 	   53 4C 49 44 49
 	   4E 47 20 50 55
 	   5A 5A 4C 45 00
- 00000220		     2		.code
- 00000220  52		     2		push	edx
- 00000221  BA 00000112 R     2		mov	edx,OFFSET ??0006
- 00000226  E8 00000000 E     2		call	WriteString
- 0000022B  5A		     2		pop	edx
- 0000022C  E8 00000000 E     1		call	Crlf
+ 000002AB		     2		.code
+ 000002AB  52		     2		push	edx
+ 000002AC  BA 0000018F R     2		mov	edx,OFFSET ??000B
+ 000002B1  E8 00000000 E     2		call	WriteString
+ 000002B6  5A		     2		pop	edx
+ 000002B7  E8 00000000 E     1		call	Crlf
 					mWriteLn "----------------------------------"
- 00000135		     2		.data		
- 00000135 2D 2D 2D 2D 2D     2		??0007 BYTE "----------------------------------",0	
+ 000001B2		     2		.data		
+ 000001B2 2D 2D 2D 2D 2D     2		??000C BYTE "----------------------------------",0	
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 2D
 	   2D 2D 2D 2D 00
- 00000231		     2		.code
- 00000231  52		     2		push	edx
- 00000232  BA 00000135 R     2		mov	edx,OFFSET ??0007
- 00000237  E8 00000000 E     2		call	WriteString
- 0000023C  5A		     2		pop	edx
- 0000023D  E8 00000000 E     1		call	Crlf
- 00000242  C3				RET
- 00000243			PrintTitleLogo ENDP
+ 000002BC		     2		.code
+ 000002BC  52		     2		push	edx
+ 000002BD  BA 000001B2 R     2		mov	edx,OFFSET ??000C
+ 000002C2  E8 00000000 E     2		call	WriteString
+ 000002C7  5A		     2		pop	edx
+ 000002C8  E8 00000000 E     1		call	Crlf
+ 000002CD  C3				RET
+ 000002CE			PrintTitleLogo ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 00000243			PrintMetaMenu PROC
+ 000002CE			PrintMetaMenu PROC
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 				  mWriteLn "a) Solve a puzzle with the computer (C)"
- 00000158		     2		.data		
- 00000158 61 29 20 53 6F     2		??0008 BYTE "a) Solve a puzzle with the computer (C)",0	
+ 000001D5		     2		.data		
+ 000001D5 61 29 20 53 6F     2		??000D BYTE "a) Solve a puzzle with the computer (C)",0	
 	   6C 76 65 20 61
 	   20 70 75 7A 7A
 	   6C 65 20 77 69
@@ -581,242 +673,242 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 	   65 20 63 6F 6D
 	   70 75 74 65 72
 	   20 28 43 29 00
- 00000243		     2		.code
- 00000243  52		     2		push	edx
- 00000244  BA 00000158 R     2		mov	edx,OFFSET ??0008
- 00000249  E8 00000000 E     2		call	WriteString
- 0000024E  5A		     2		pop	edx
- 0000024F  E8 00000000 E     1		call	Crlf
+ 000002CE		     2		.code
+ 000002CE  52		     2		push	edx
+ 000002CF  BA 000001D5 R     2		mov	edx,OFFSET ??000D
+ 000002D4  E8 00000000 E     2		call	WriteString
+ 000002D9  5A		     2		pop	edx
+ 000002DA  E8 00000000 E     1		call	Crlf
 					mWriteLn "b) Solve a puzzle yourself (Y)"
- 00000180		     2		.data		
- 00000180 62 29 20 53 6F     2		??0009 BYTE "b) Solve a puzzle yourself (Y)",0	
+ 000001FD		     2		.data		
+ 000001FD 62 29 20 53 6F     2		??000E BYTE "b) Solve a puzzle yourself (Y)",0	
 	   6C 76 65 20 61
 	   20 70 75 7A 7A
 	   6C 65 20 79 6F
 	   75 72 73 65 6C
 	   66 20 28 59 29
 	   00
- 00000254		     2		.code
- 00000254  52		     2		push	edx
- 00000255  BA 00000180 R     2		mov	edx,OFFSET ??0009
- 0000025A  E8 00000000 E     2		call	WriteString
- 0000025F  5A		     2		pop	edx
- 00000260  E8 00000000 E     1		call	Crlf
- 00000265  C3				RET
- 00000266			PrintMetaMenu ENDP
+ 000002DF		     2		.code
+ 000002DF  52		     2		push	edx
+ 000002E0  BA 000001FD R     2		mov	edx,OFFSET ??000E
+ 000002E5  E8 00000000 E     2		call	WriteString
+ 000002EA  5A		     2		pop	edx
+ 000002EB  E8 00000000 E     1		call	Crlf
+ 000002F0  C3				RET
+ 000002F1			PrintMetaMenu ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 00000266			ProcessMetaUserInput PROC uses edx
+ 000002F1			ProcessMetaUserInput PROC uses edx
 				; @returns EAX - 1: C, 2: Y
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 
- 00000266  52		   *	    push   edx
- 00000267			  INPUTSTART:
- 00000267  BA 00000065 R		mov edx, OFFSET userInput
- 0000026C  6A 01			push USER_INPUT_LENGTH
- 0000026E  52				push edx
- 0000026F  E8 00000000 E		call UTIL_ReadString
+ 000002F1  52		   *	    push   edx
+ 000002F2			  INPUTSTART:
+ 000002F2  BA 00000065 R		mov edx, OFFSET userInput
+ 000002F7  6A 01			push USER_INPUT_LENGTH
+ 000002F9  52				push edx
+ 000002FA  E8 00000000 E		call UTIL_ReadString
 
 					; Moves user input to eax
 					; Moves to uppercase if lowercase input
- 00000274  0F B6 02			movzx eax, BYTE PTR [edx]
+ 000002FF  0F B6 02			movzx eax, BYTE PTR [edx]
 					.IF (eax >= 91)
- 00000277  83 F8 5B	   *	    cmp    eax, 05Bh
- 0000027A  72 03	   *	    jb	@C0021
- 0000027C  83 E8 20			  sub eax, 32
+ 00000302  83 F8 5B	   *	    cmp    eax, 05Bh
+ 00000305  72 03	   *	    jb	@C0025
+ 00000307  83 E8 20			  sub eax, 32
 					.ENDIF
- 0000027F		   *@C0021:
+ 0000030A		   *@C0025:
 
 					.IF (eax == 67) ; C
- 0000027F  83 F8 43	   *	    cmp    eax, 043h
- 00000282  75 09	   *	    jne    @C0023
- 00000284  B8 00000001			  mov eax, 1
- 00000289  EB 23				jmp QUIT
+ 0000030A  83 F8 43	   *	    cmp    eax, 043h
+ 0000030D  75 09	   *	    jne    @C0027
+ 0000030F  B8 00000001			  mov eax, 1
+ 00000314  EB 23				jmp QUIT
 					.ELSEIF (eax == 89) ; Y
- 0000028B  EB 21	   *	    jmp    @C0025
- 0000028D		   *@C0023:
- 0000028D  83 F8 59	   *	    cmp    eax, 059h
- 00000290  75 09	   *	    jne    @C0026
- 00000292  B8 00000002			  mov eax, 2
- 00000297  EB 15			  jmp QUIT
+ 00000316  EB 21	   *	    jmp    @C0029
+ 00000318		   *@C0027:
+ 00000318  83 F8 59	   *	    cmp    eax, 059h
+ 0000031B  75 09	   *	    jne    @C002A
+ 0000031D  B8 00000002			  mov eax, 2
+ 00000322  EB 15			  jmp QUIT
 					.ELSE
- 00000299  EB 13	   *	    jmp    @C0028
- 0000029B		   *@C0026:
+ 00000324  EB 13	   *	    jmp    @C002C
+ 00000326		   *@C002A:
 					  mWriteLn "Invalid Input! Try again: "
- 0000019F		     2		.data		
- 0000019F 49 6E 76 61 6C     2		??000A BYTE "Invalid Input! Try again: ",0	
+ 0000021C		     2		.data		
+ 0000021C 49 6E 76 61 6C     2		??000F BYTE "Invalid Input! Try again: ",0	
 	   69 64 20 49 6E
 	   70 75 74 21 20
 	   54 72 79 20 61
 	   67 61 69 6E 3A
 	   20 00
- 0000029B		     2		.code
- 0000029B  52		     2		push	edx
- 0000029C  BA 0000019F R     2		mov	edx,OFFSET ??000A
- 000002A1  E8 00000000 E     2		call	WriteString
- 000002A6  5A		     2		pop	edx
- 000002A7  E8 00000000 E     1		call	Crlf
- 000002AC  EB B9				jmp INPUTSTART
+ 00000326		     2		.code
+ 00000326  52		     2		push	edx
+ 00000327  BA 0000021C R     2		mov	edx,OFFSET ??000F
+ 0000032C  E8 00000000 E     2		call	WriteString
+ 00000331  5A		     2		pop	edx
+ 00000332  E8 00000000 E     1		call	Crlf
+ 00000337  EB B9				jmp INPUTSTART
 					.ENDIF
- 000002AE		   *@C0028:
- 000002AE		   *@C0025:
+ 00000339		   *@C002C:
+ 00000339		   *@C0029:
 
- 000002AE				QUIT:
+ 00000339				QUIT:
 					RET
- 000002AE  5A		   *	    pop    edx
- 000002AF  C3		   *	    ret    00000h
- 000002B0			ProcessMetaUserInput ENDP
+ 00000339  5A		   *	    pop    edx
+ 0000033A  C3		   *	    ret    00000h
+ 0000033B			ProcessMetaUserInput ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 000002B0			PrintStartMenu PROC
+ 0000033B			PrintStartMenu PROC
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 				  mWriteLn "a) Start new game (S)"
- 000001BA		     2		.data		
- 000001BA 61 29 20 53 74     2		??000B BYTE "a) Start new game (S)",0	
+ 00000237		     2		.data		
+ 00000237 61 29 20 53 74     2		??0010 BYTE "a) Start new game (S)",0	
 	   61 72 74 20 6E
 	   65 77 20 67 61
 	   6D 65 20 28 53
 	   29 00
- 000002B0		     2		.code
- 000002B0  52		     2		push	edx
- 000002B1  BA 000001BA R     2		mov	edx,OFFSET ??000B
- 000002B6  E8 00000000 E     2		call	WriteString
- 000002BB  5A		     2		pop	edx
- 000002BC  E8 00000000 E     1		call	Crlf
+ 0000033B		     2		.code
+ 0000033B  52		     2		push	edx
+ 0000033C  BA 00000237 R     2		mov	edx,OFFSET ??0010
+ 00000341  E8 00000000 E     2		call	WriteString
+ 00000346  5A		     2		pop	edx
+ 00000347  E8 00000000 E     1		call	Crlf
 					mWriteLn "b) End Game (E)"
- 000001D0		     2		.data		
- 000001D0 62 29 20 45 6E     2		??000C BYTE "b) End Game (E)",0	
+ 0000024D		     2		.data		
+ 0000024D 62 29 20 45 6E     2		??0011 BYTE "b) End Game (E)",0	
 	   64 20 47 61 6D
 	   65 20 28 45 29
 	   00
- 000002C1		     2		.code
- 000002C1  52		     2		push	edx
- 000002C2  BA 000001D0 R     2		mov	edx,OFFSET ??000C
- 000002C7  E8 00000000 E     2		call	WriteString
- 000002CC  5A		     2		pop	edx
- 000002CD  E8 00000000 E     1		call	Crlf
- 000002D2  C3				RET 
- 000002D3			PrintStartMenu ENDP
+ 0000034C		     2		.code
+ 0000034C  52		     2		push	edx
+ 0000034D  BA 0000024D R     2		mov	edx,OFFSET ??0011
+ 00000352  E8 00000000 E     2		call	WriteString
+ 00000357  5A		     2		pop	edx
+ 00000358  E8 00000000 E     1		call	Crlf
+ 0000035D  C3				RET 
+ 0000035E			PrintStartMenu ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 000002D3			ProcessStartUserInput PROC uses edx
+ 0000035E			ProcessStartUserInput PROC uses edx
 				; @returns EAX - 1: S, 2: E
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 
- 000002D3  52		   *	    push   edx
- 000002D4			  INPUTSTART:
- 000002D4  BA 00000065 R		mov edx, OFFSET userInput
- 000002D9  6A 01			push USER_INPUT_LENGTH
- 000002DB  52				push edx
- 000002DC  E8 00000000 E		call UTIL_ReadString
+ 0000035E  52		   *	    push   edx
+ 0000035F			  INPUTSTART:
+ 0000035F  BA 00000065 R		mov edx, OFFSET userInput
+ 00000364  6A 01			push USER_INPUT_LENGTH
+ 00000366  52				push edx
+ 00000367  E8 00000000 E		call UTIL_ReadString
 
 					; Moves user input to eax
 					; Moves to uppercase if lowercase input
- 000002E1  0F B6 02			movzx eax, BYTE PTR [edx]
+ 0000036C  0F B6 02			movzx eax, BYTE PTR [edx]
 					.IF (eax >= 91)
- 000002E4  83 F8 5B	   *	    cmp    eax, 05Bh
- 000002E7  72 03	   *	    jb	@C0029
- 000002E9  83 E8 20			  sub eax, 32
+ 0000036F  83 F8 5B	   *	    cmp    eax, 05Bh
+ 00000372  72 03	   *	    jb	@C002D
+ 00000374  83 E8 20			  sub eax, 32
 					.ENDIF
- 000002EC		   *@C0029:
+ 00000377		   *@C002D:
 
 					.IF (eax == 83) ; S
- 000002EC  83 F8 53	   *	    cmp    eax, 053h
- 000002EF  75 09	   *	    jne    @C002B
- 000002F1  B8 00000001			  mov eax, 1
- 000002F6  EB 23				jmp QUIT
+ 00000377  83 F8 53	   *	    cmp    eax, 053h
+ 0000037A  75 09	   *	    jne    @C002F
+ 0000037C  B8 00000001			  mov eax, 1
+ 00000381  EB 23				jmp QUIT
 					.ELSEIF (eax == 69) ; E
- 000002F8  EB 21	   *	    jmp    @C002D
- 000002FA		   *@C002B:
- 000002FA  83 F8 45	   *	    cmp    eax, 045h
- 000002FD  75 09	   *	    jne    @C002E
- 000002FF  B8 00000002			  mov eax, 2
- 00000304  EB 15			  jmp QUIT
+ 00000383  EB 21	   *	    jmp    @C0031
+ 00000385		   *@C002F:
+ 00000385  83 F8 45	   *	    cmp    eax, 045h
+ 00000388  75 09	   *	    jne    @C0032
+ 0000038A  B8 00000002			  mov eax, 2
+ 0000038F  EB 15			  jmp QUIT
 					.ELSE
- 00000306  EB 13	   *	    jmp    @C0030
- 00000308		   *@C002E:
+ 00000391  EB 13	   *	    jmp    @C0034
+ 00000393		   *@C0032:
 					  mWriteLn "Invalid Input! Try again: "
- 000001E0		     2		.data		
- 000001E0 49 6E 76 61 6C     2		??000D BYTE "Invalid Input! Try again: ",0	
+ 0000025D		     2		.data		
+ 0000025D 49 6E 76 61 6C     2		??0012 BYTE "Invalid Input! Try again: ",0	
 	   69 64 20 49 6E
 	   70 75 74 21 20
 	   54 72 79 20 61
 	   67 61 69 6E 3A
 	   20 00
- 00000308		     2		.code
- 00000308  52		     2		push	edx
- 00000309  BA 000001E0 R     2		mov	edx,OFFSET ??000D
- 0000030E  E8 00000000 E     2		call	WriteString
- 00000313  5A		     2		pop	edx
- 00000314  E8 00000000 E     1		call	Crlf
- 00000319  EB B9				jmp INPUTSTART
+ 00000393		     2		.code
+ 00000393  52		     2		push	edx
+ 00000394  BA 0000025D R     2		mov	edx,OFFSET ??0012
+ 00000399  E8 00000000 E     2		call	WriteString
+ 0000039E  5A		     2		pop	edx
+ 0000039F  E8 00000000 E     1		call	Crlf
+ 000003A4  EB B9				jmp INPUTSTART
 					.ENDIF
- 0000031B		   *@C0030:
- 0000031B		   *@C002D:
+ 000003A6		   *@C0034:
+ 000003A6		   *@C0031:
 
- 0000031B				QUIT:
+ 000003A6				QUIT:
 					RET
- 0000031B  5A		   *	    pop    edx
- 0000031C  C3		   *	    ret    00000h
- 0000031D			ProcessStartUserInput ENDP
+ 000003A6  5A		   *	    pop    edx
+ 000003A7  C3		   *	    ret    00000h
+ 000003A8			ProcessStartUserInput ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 0000031D			ProcessFilenameInput PROC uses edx
+ 000003A8			ProcessFilenameInput PROC uses edx
 				; Asks for filename, and creates an board object if exists
 				; @return eax - Pointer to board instance
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 0000031D  52		   *	    push   edx
- 0000031E			  INPUTSTART:
+ 000003A8  52		   *	    push   edx
+ 000003A9			  INPUTSTART:
 					mWrite "Name of file to open? : "
- 000001FB		     1		.data		
- 000001FB 4E 61 6D 65 20     1		??000E BYTE "Name of file to open? : ",0	
+ 00000278		     1		.data		
+ 00000278 4E 61 6D 65 20     1		??0013 BYTE "Name of file to open? : ",0	
 	   6F 66 20 66 69
 	   6C 65 20 74 6F
 	   20 6F 70 65 6E
 	   3F 20 3A 20 00
- 0000031E		     1		.code
- 0000031E  52		     1		push	edx
- 0000031F  BA 000001FB R     1		mov	edx,OFFSET ??000E
- 00000324  E8 00000000 E     1		call	WriteString
- 00000329  5A		     1		pop	edx
- 0000032A  BA 00000000 R		mov edx, OFFSET filename
+ 000003A9		     1		.code
+ 000003A9  52		     1		push	edx
+ 000003AA  BA 00000278 R     1		mov	edx,OFFSET ??0013
+ 000003AF  E8 00000000 E     1		call	WriteString
+ 000003B4  5A		     1		pop	edx
+ 000003B5  BA 00000000 R		mov edx, OFFSET filename
 
- 0000032F  6A 64			push MAX_STR_LENGTH
- 00000331  52				push edx
- 00000332  E8 00000000 E		call UTIL_ReadString
- 00000337  E8 00000000 E		call CRLF
+ 000003BA  6A 64			push MAX_STR_LENGTH
+ 000003BC  52				push edx
+ 000003BD  E8 00000000 E		call UTIL_ReadString
+ 000003C2  E8 00000000 E		call CRLF
 
 					; Create board object and save in stack
- 0000033C  E8 00000000 E		call B_CreateObj
- 00000341  50				push eax 
+ 000003C7  E8 00000000 E		call B_CreateObj
+ 000003CC  50				push eax 
 
- 00000342  BA 00000000 R		mov edx, OFFSET filename
- 00000347  52				push edx
- 00000348  50				push eax
- 00000349  E8 00000000 E		call B_ReadFile
+ 000003CD  BA 00000000 R		mov edx, OFFSET filename
+ 000003D2  52				push edx
+ 000003D3  50				push eax
+ 000003D4  E8 00000000 E		call B_ReadFile
 					
 					; If failed the read file, delete the created object
 					.IF (eax == 0) 
- 0000034E  0B C0	   *	    or	eax, eax
- 00000350  75 07	   *	    jne    @C0031
- 00000352  E8 00000000 E			call B_DeleteObj
- 00000357  EB C5				jmp INPUTSTART
+ 000003D9  0B C0	   *	    or	eax, eax
+ 000003DB  75 07	   *	    jne    @C0035
+ 000003DD  E8 00000000 E			call B_DeleteObj
+ 000003E2  EB C5				jmp INPUTSTART
 					.ENDIF
- 00000359		   *@C0031:
+ 000003E4		   *@C0035:
 
- 00000359  58				pop eax
- 0000035A  50				push eax
+ 000003E4  58				pop eax
+ 000003E5  50				push eax
 
 					; If the board is not solvable, delete and retry
- 0000035B  50				push eax
- 0000035C  E8 00000000 E		call B_IsSolvable
+ 000003E6  50				push eax
+ 000003E7  E8 00000000 E		call B_IsSolvable
 
 					.IF (eax == 0)
- 00000361  0B C0	   *	    or	eax, eax
- 00000363  75 13	   *	    jne    @C0033
+ 000003EC  0B C0	   *	    or	eax, eax
+ 000003EE  75 13	   *	    jne    @C0037
 					  mWrite "This puzzle is not solvable! Try another file."
- 00000214		     1		.data		
- 00000214 54 68 69 73 20     1		??000F BYTE "This puzzle is not solvable! Try another file.",0	
+ 00000291		     1		.data		
+ 00000291 54 68 69 73 20     1		??0014 BYTE "This puzzle is not solvable! Try another file.",0	
 	   70 75 7A 7A 6C
 	   65 20 69 73 20
 	   6E 6F 74 20 73
@@ -826,221 +918,221 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 	   6F 74 68 65 72
 	   20 66 69 6C 65
 	   2E 00
- 00000365		     1		.code
- 00000365  52		     1		push	edx
- 00000366  BA 00000214 R     1		mov	edx,OFFSET ??000F
- 0000036B  E8 00000000 E     1		call	WriteString
- 00000370  5A		     1		pop	edx
- 00000371  E8 00000000 E			call CRLF
- 00000376  EB A6				jmp INPUTSTART
+ 000003F0		     1		.code
+ 000003F0  52		     1		push	edx
+ 000003F1  BA 00000291 R     1		mov	edx,OFFSET ??0014
+ 000003F6  E8 00000000 E     1		call	WriteString
+ 000003FB  5A		     1		pop	edx
+ 000003FC  E8 00000000 E			call CRLF
+ 00000401  EB A6				jmp INPUTSTART
 					.ENDIF
- 00000378		   *@C0033:
+ 00000403		   *@C0037:
 					
- 00000378  58				pop eax
+ 00000403  58				pop eax
 
- 00000379				QUIT:
+ 00000404				QUIT:
 					RET
- 00000379  5A		   *	    pop    edx
- 0000037A  C3		   *	    ret    00000h
- 0000037B			ProcessFilenameInput ENDP
+ 00000404  5A		   *	    pop    edx
+ 00000405  C3		   *	    ret    00000h
+ 00000406			ProcessFilenameInput ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 0000037B			PrintGameMenu PROC 
+ 00000406			PrintGameMenu PROC 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
 				  mWriteLn "a) Start new game (S)"
- 00000243		     2		.data		
- 00000243 61 29 20 53 74     2		??0010 BYTE "a) Start new game (S)",0	
+ 000002C0		     2		.data		
+ 000002C0 61 29 20 53 74     2		??0015 BYTE "a) Start new game (S)",0	
 	   61 72 74 20 6E
 	   65 77 20 67 61
 	   6D 65 20 28 53
 	   29 00
- 0000037B		     2		.code
- 0000037B  52		     2		push	edx
- 0000037C  BA 00000243 R     2		mov	edx,OFFSET ??0010
- 00000381  E8 00000000 E     2		call	WriteString
- 00000386  5A		     2		pop	edx
- 00000387  E8 00000000 E     1		call	Crlf
+ 00000406		     2		.code
+ 00000406  52		     2		push	edx
+ 00000407  BA 000002C0 R     2		mov	edx,OFFSET ??0015
+ 0000040C  E8 00000000 E     2		call	WriteString
+ 00000411  5A		     2		pop	edx
+ 00000412  E8 00000000 E     1		call	Crlf
 					mWriteLn "b) Print Map (P)"
- 00000259		     2		.data		
- 00000259 62 29 20 50 72     2		??0011 BYTE "b) Print Map (P)",0	
+ 000002D6		     2		.data		
+ 000002D6 62 29 20 50 72     2		??0016 BYTE "b) Print Map (P)",0	
 	   69 6E 74 20 4D
 	   61 70 20 28 50
 	   29 00
- 0000038C		     2		.code
- 0000038C  52		     2		push	edx
- 0000038D  BA 00000259 R     2		mov	edx,OFFSET ??0011
- 00000392  E8 00000000 E     2		call	WriteString
- 00000397  5A		     2		pop	edx
- 00000398  E8 00000000 E     1		call	Crlf
+ 00000417		     2		.code
+ 00000417  52		     2		push	edx
+ 00000418  BA 000002D6 R     2		mov	edx,OFFSET ??0016
+ 0000041D  E8 00000000 E     2		call	WriteString
+ 00000422  5A		     2		pop	edx
+ 00000423  E8 00000000 E     1		call	Crlf
 					mWriteLn "c) Move Up (U)"
- 0000026A		     2		.data		
- 0000026A 63 29 20 4D 6F     2		??0012 BYTE "c) Move Up (U)",0	
+ 000002E7		     2		.data		
+ 000002E7 63 29 20 4D 6F     2		??0017 BYTE "c) Move Up (U)",0	
 	   76 65 20 55 70
 	   20 28 55 29 00
- 0000039D		     2		.code
- 0000039D  52		     2		push	edx
- 0000039E  BA 0000026A R     2		mov	edx,OFFSET ??0012
- 000003A3  E8 00000000 E     2		call	WriteString
- 000003A8  5A		     2		pop	edx
- 000003A9  E8 00000000 E     1		call	Crlf
+ 00000428		     2		.code
+ 00000428  52		     2		push	edx
+ 00000429  BA 000002E7 R     2		mov	edx,OFFSET ??0017
+ 0000042E  E8 00000000 E     2		call	WriteString
+ 00000433  5A		     2		pop	edx
+ 00000434  E8 00000000 E     1		call	Crlf
 					mWriteLn "d) Move Down (D)"
- 00000279		     2		.data		
- 00000279 64 29 20 4D 6F     2		??0013 BYTE "d) Move Down (D)",0	
+ 000002F6		     2		.data		
+ 000002F6 64 29 20 4D 6F     2		??0018 BYTE "d) Move Down (D)",0	
 	   76 65 20 44 6F
 	   77 6E 20 28 44
 	   29 00
- 000003AE		     2		.code
- 000003AE  52		     2		push	edx
- 000003AF  BA 00000279 R     2		mov	edx,OFFSET ??0013
- 000003B4  E8 00000000 E     2		call	WriteString
- 000003B9  5A		     2		pop	edx
- 000003BA  E8 00000000 E     1		call	Crlf
+ 00000439		     2		.code
+ 00000439  52		     2		push	edx
+ 0000043A  BA 000002F6 R     2		mov	edx,OFFSET ??0018
+ 0000043F  E8 00000000 E     2		call	WriteString
+ 00000444  5A		     2		pop	edx
+ 00000445  E8 00000000 E     1		call	Crlf
 					mWriteLn "e) Move Left (L)"
- 0000028A		     2		.data		
- 0000028A 65 29 20 4D 6F     2		??0014 BYTE "e) Move Left (L)",0	
+ 00000307		     2		.data		
+ 00000307 65 29 20 4D 6F     2		??0019 BYTE "e) Move Left (L)",0	
 	   76 65 20 4C 65
 	   66 74 20 28 4C
 	   29 00
- 000003BF		     2		.code
- 000003BF  52		     2		push	edx
- 000003C0  BA 0000028A R     2		mov	edx,OFFSET ??0014
- 000003C5  E8 00000000 E     2		call	WriteString
- 000003CA  5A		     2		pop	edx
- 000003CB  E8 00000000 E     1		call	Crlf
+ 0000044A		     2		.code
+ 0000044A  52		     2		push	edx
+ 0000044B  BA 00000307 R     2		mov	edx,OFFSET ??0019
+ 00000450  E8 00000000 E     2		call	WriteString
+ 00000455  5A		     2		pop	edx
+ 00000456  E8 00000000 E     1		call	Crlf
 					mWriteLn "f) Move Right (R)"
- 0000029B		     2		.data		
- 0000029B 66 29 20 4D 6F     2		??0015 BYTE "f) Move Right (R)",0	
+ 00000318		     2		.data		
+ 00000318 66 29 20 4D 6F     2		??001A BYTE "f) Move Right (R)",0	
 	   76 65 20 52 69
 	   67 68 74 20 28
 	   52 29 00
- 000003D0		     2		.code
- 000003D0  52		     2		push	edx
- 000003D1  BA 0000029B R     2		mov	edx,OFFSET ??0015
- 000003D6  E8 00000000 E     2		call	WriteString
- 000003DB  5A		     2		pop	edx
- 000003DC  E8 00000000 E     1		call	Crlf
+ 0000045B		     2		.code
+ 0000045B  52		     2		push	edx
+ 0000045C  BA 00000318 R     2		mov	edx,OFFSET ??001A
+ 00000461  E8 00000000 E     2		call	WriteString
+ 00000466  5A		     2		pop	edx
+ 00000467  E8 00000000 E     1		call	Crlf
 					mWriteLn "g) End Game (E)"
- 000002AD		     2		.data		
- 000002AD 67 29 20 45 6E     2		??0016 BYTE "g) End Game (E)",0	
+ 0000032A		     2		.data		
+ 0000032A 67 29 20 45 6E     2		??001B BYTE "g) End Game (E)",0	
 	   64 20 47 61 6D
 	   65 20 28 45 29
 	   00
- 000003E1		     2		.code
- 000003E1  52		     2		push	edx
- 000003E2  BA 000002AD R     2		mov	edx,OFFSET ??0016
- 000003E7  E8 00000000 E     2		call	WriteString
- 000003EC  5A		     2		pop	edx
- 000003ED  E8 00000000 E     1		call	Crlf
- 000003F2  C3				RET 
- 000003F3			PrintGameMenu ENDP
+ 0000046C		     2		.code
+ 0000046C  52		     2		push	edx
+ 0000046D  BA 0000032A R     2		mov	edx,OFFSET ??001B
+ 00000472  E8 00000000 E     2		call	WriteString
+ 00000477  5A		     2		pop	edx
+ 00000478  E8 00000000 E     1		call	Crlf
+ 0000047D  C3				RET 
+ 0000047E			PrintGameMenu ENDP
 
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 000003F3			ProcessGameUserInput PROC uses edx
+ 0000047E			ProcessGameUserInput PROC uses edx
 				; @returns EAX -
 				;  1: S	 | 3: U	 | 5: L	 | 7: E
 				;  2: P	 | 4: D	 | 6: R  |
 				; - - - - - - - - - - - - - - - - - - - - - - - - -
- 000003F3  52		   *	    push   edx
- 000003F4			  INPUTSTART:
- 000003F4  BA 00000065 R		mov edx, OFFSET userInput
- 000003F9  6A 01			push USER_INPUT_LENGTH
- 000003FB  52				push edx
- 000003FC  E8 00000000 E		call UTIL_ReadString
+ 0000047E  52		   *	    push   edx
+ 0000047F			  INPUTSTART:
+ 0000047F  BA 00000065 R		mov edx, OFFSET userInput
+ 00000484  6A 01			push USER_INPUT_LENGTH
+ 00000486  52				push edx
+ 00000487  E8 00000000 E		call UTIL_ReadString
 
 					; Moves user input to eax
 					; Moves to uppercase if lowercase input
- 00000401  0F B6 02			movzx eax, BYTE PTR [edx]
+ 0000048C  0F B6 02			movzx eax, BYTE PTR [edx]
 					.IF (eax >= 91)
- 00000404  83 F8 5B	   *	    cmp    eax, 05Bh
- 00000407  72 03	   *	    jb	@C0035
- 00000409  83 E8 20			  sub eax, 32
+ 0000048F  83 F8 5B	   *	    cmp    eax, 05Bh
+ 00000492  72 03	   *	    jb	@C0039
+ 00000494  83 E8 20			  sub eax, 32
 					.ENDIF
- 0000040C		   *@C0035:
+ 00000497		   *@C0039:
 
 					; Sets eax to a different value for each input
 					.IF (eax == 83) ; S
- 0000040C  83 F8 53	   *	    cmp    eax, 053h
- 0000040F  75 09	   *	    jne    @C0037
- 00000411  B8 00000001			  mov eax, 1
- 00000416  EB 6C				jmp QUIT
+ 00000497  83 F8 53	   *	    cmp    eax, 053h
+ 0000049A  75 09	   *	    jne    @C003B
+ 0000049C  B8 00000001			  mov eax, 1
+ 000004A1  EB 6C				jmp QUIT
 					.ELSEIF (eax == 80) ; P
- 00000418  EB 6A	   *	    jmp    @C0039
- 0000041A		   *@C0037:
- 0000041A  83 F8 50	   *	    cmp    eax, 050h
- 0000041D  75 09	   *	    jne    @C003A
- 0000041F  B8 00000002			  mov eax, 2
- 00000424  EB 5E			  jmp QUIT
+ 000004A3  EB 6A	   *	    jmp    @C003D
+ 000004A5		   *@C003B:
+ 000004A5  83 F8 50	   *	    cmp    eax, 050h
+ 000004A8  75 09	   *	    jne    @C003E
+ 000004AA  B8 00000002			  mov eax, 2
+ 000004AF  EB 5E			  jmp QUIT
 					.ELSEIF (eax == 85) ; U
- 00000426  EB 5C	   *	    jmp    @C003C
- 00000428		   *@C003A:
- 00000428  83 F8 55	   *	    cmp    eax, 055h
- 0000042B  75 09	   *	    jne    @C003D
- 0000042D  B8 00000003			  mov eax, 3
- 00000432  EB 50			  jmp QUIT
+ 000004B1  EB 5C	   *	    jmp    @C0040
+ 000004B3		   *@C003E:
+ 000004B3  83 F8 55	   *	    cmp    eax, 055h
+ 000004B6  75 09	   *	    jne    @C0041
+ 000004B8  B8 00000003			  mov eax, 3
+ 000004BD  EB 50			  jmp QUIT
 					.ELSEIF (eax == 68) ; D
- 00000434  EB 4E	   *	    jmp    @C003F
- 00000436		   *@C003D:
- 00000436  83 F8 44	   *	    cmp    eax, 044h
- 00000439  75 09	   *	    jne    @C0040
- 0000043B  B8 00000004			  mov eax, 4
- 00000440  EB 42			  jmp QUIT
+ 000004BF  EB 4E	   *	    jmp    @C0043
+ 000004C1		   *@C0041:
+ 000004C1  83 F8 44	   *	    cmp    eax, 044h
+ 000004C4  75 09	   *	    jne    @C0044
+ 000004C6  B8 00000004			  mov eax, 4
+ 000004CB  EB 42			  jmp QUIT
 					.ELSEIF (eax == 76) ; L
- 00000442  EB 40	   *	    jmp    @C0042
- 00000444		   *@C0040:
- 00000444  83 F8 4C	   *	    cmp    eax, 04Ch
- 00000447  75 09	   *	    jne    @C0043
- 00000449  B8 00000005			  mov eax, 5
- 0000044E  EB 34			  jmp QUIT
+ 000004CD  EB 40	   *	    jmp    @C0046
+ 000004CF		   *@C0044:
+ 000004CF  83 F8 4C	   *	    cmp    eax, 04Ch
+ 000004D2  75 09	   *	    jne    @C0047
+ 000004D4  B8 00000005			  mov eax, 5
+ 000004D9  EB 34			  jmp QUIT
 					.ELSEIF (eax == 82) ; R
- 00000450  EB 32	   *	    jmp    @C0045
- 00000452		   *@C0043:
- 00000452  83 F8 52	   *	    cmp    eax, 052h
- 00000455  75 09	   *	    jne    @C0046
- 00000457  B8 00000006			  mov eax, 6
- 0000045C  EB 26			  jmp QUIT
+ 000004DB  EB 32	   *	    jmp    @C0049
+ 000004DD		   *@C0047:
+ 000004DD  83 F8 52	   *	    cmp    eax, 052h
+ 000004E0  75 09	   *	    jne    @C004A
+ 000004E2  B8 00000006			  mov eax, 6
+ 000004E7  EB 26			  jmp QUIT
 					.ELSEIF (eax == 69) ; E
- 0000045E  EB 24	   *	    jmp    @C0048
- 00000460		   *@C0046:
- 00000460  83 F8 45	   *	    cmp    eax, 045h
- 00000463  75 09	   *	    jne    @C0049
- 00000465  B8 00000007			  mov eax, 7
- 0000046A  EB 18			  jmp QUIT
+ 000004E9  EB 24	   *	    jmp    @C004C
+ 000004EB		   *@C004A:
+ 000004EB  83 F8 45	   *	    cmp    eax, 045h
+ 000004EE  75 09	   *	    jne    @C004D
+ 000004F0  B8 00000007			  mov eax, 7
+ 000004F5  EB 18			  jmp QUIT
 					.ELSE
- 0000046C  EB 16	   *	    jmp    @C004B
- 0000046E		   *@C0049:
+ 000004F7  EB 16	   *	    jmp    @C004F
+ 000004F9		   *@C004D:
 					  mWriteLn "Invalid Input! Try again: "
- 000002BD		     2		.data		
- 000002BD 49 6E 76 61 6C     2		??0017 BYTE "Invalid Input! Try again: ",0	
+ 0000033A		     2		.data		
+ 0000033A 49 6E 76 61 6C     2		??001C BYTE "Invalid Input! Try again: ",0	
 	   69 64 20 49 6E
 	   70 75 74 21 20
 	   54 72 79 20 61
 	   67 61 69 6E 3A
 	   20 00
- 0000046E		     2		.code
- 0000046E  52		     2		push	edx
- 0000046F  BA 000002BD R     2		mov	edx,OFFSET ??0017
- 00000474  E8 00000000 E     2		call	WriteString
- 00000479  5A		     2		pop	edx
- 0000047A  E8 00000000 E     1		call	Crlf
- 0000047F  E9 FFFFFF70				jmp INPUTSTART
+ 000004F9		     2		.code
+ 000004F9  52		     2		push	edx
+ 000004FA  BA 0000033A R     2		mov	edx,OFFSET ??001C
+ 000004FF  E8 00000000 E     2		call	WriteString
+ 00000504  5A		     2		pop	edx
+ 00000505  E8 00000000 E     1		call	Crlf
+ 0000050A  E9 FFFFFF70				jmp INPUTSTART
 					.ENDIF
- 00000484		   *@C004B:
- 00000484		   *@C0048:
- 00000484		   *@C0045:
- 00000484		   *@C0042:
- 00000484		   *@C003F:
- 00000484		   *@C003C:
- 00000484		   *@C0039:
+ 0000050F		   *@C004F:
+ 0000050F		   *@C004C:
+ 0000050F		   *@C0049:
+ 0000050F		   *@C0046:
+ 0000050F		   *@C0043:
+ 0000050F		   *@C0040:
+ 0000050F		   *@C003D:
 
- 00000484				QUIT:
+ 0000050F				QUIT:
 					RET
- 00000484  5A		   *	    pop    edx
- 00000485  C3		   *	    ret    00000h
- 00000486			ProcessGameUserInput ENDP
+ 0000050F  5A		   *	    pop    edx
+ 00000510  C3		   *	    ret    00000h
+ 00000511			ProcessGameUserInput ENDP
 
 
 				END main
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/14/18 15:15:23
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/14/18 15:40:54
 main.asm						     Symbols 2 - 1
 
 
@@ -1170,8 +1262,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 000002D8 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000486 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000355 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000511 DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -1257,22 +1349,22 @@ OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-PrintGameMenu  . . . . . . . . .	P Near	 0000037B _TEXT	Length= 00000078 Public STDCALL
-PrintMetaMenu  . . . . . . . . .	P Near	 00000243 _TEXT	Length= 00000023 Public STDCALL
-PrintStartMenu . . . . . . . . .	P Near	 000002B0 _TEXT	Length= 00000023 Public STDCALL
-PrintTitleLogo . . . . . . . . .	P Near	 00000220 _TEXT	Length= 00000023 Public STDCALL
-ProcessFilenameInput . . . . . .	P Near	 0000031D _TEXT	Length= 0000005E Public STDCALL
-  INPUTSTART . . . . . . . . . .	L Near	 0000031E _TEXT	
-  QUIT . . . . . . . . . . . . .	L Near	 00000379 _TEXT	
-ProcessGameUserInput . . . . . .	P Near	 000003F3 _TEXT	Length= 00000093 Public STDCALL
-  INPUTSTART . . . . . . . . . .	L Near	 000003F4 _TEXT	
-  QUIT . . . . . . . . . . . . .	L Near	 00000484 _TEXT	
-ProcessMetaUserInput . . . . . .	P Near	 00000266 _TEXT	Length= 0000004A Public STDCALL
-  INPUTSTART . . . . . . . . . .	L Near	 00000267 _TEXT	
-  QUIT . . . . . . . . . . . . .	L Near	 000002AE _TEXT	
-ProcessStartUserInput  . . . . .	P Near	 000002D3 _TEXT	Length= 0000004A Public STDCALL
-  INPUTSTART . . . . . . . . . .	L Near	 000002D4 _TEXT	
-  QUIT . . . . . . . . . . . . .	L Near	 0000031B _TEXT	
+PrintGameMenu  . . . . . . . . .	P Near	 00000406 _TEXT	Length= 00000078 Public STDCALL
+PrintMetaMenu  . . . . . . . . .	P Near	 000002CE _TEXT	Length= 00000023 Public STDCALL
+PrintStartMenu . . . . . . . . .	P Near	 0000033B _TEXT	Length= 00000023 Public STDCALL
+PrintTitleLogo . . . . . . . . .	P Near	 000002AB _TEXT	Length= 00000023 Public STDCALL
+ProcessFilenameInput . . . . . .	P Near	 000003A8 _TEXT	Length= 0000005E Public STDCALL
+  INPUTSTART . . . . . . . . . .	L Near	 000003A9 _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 00000404 _TEXT	
+ProcessGameUserInput . . . . . .	P Near	 0000047E _TEXT	Length= 00000093 Public STDCALL
+  INPUTSTART . . . . . . . . . .	L Near	 0000047F _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 0000050F _TEXT	
+ProcessMetaUserInput . . . . . .	P Near	 000002F1 _TEXT	Length= 0000004A Public STDCALL
+  INPUTSTART . . . . . . . . . .	L Near	 000002F2 _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 00000339 _TEXT	
+ProcessStartUserInput  . . . . .	P Near	 0000035E _TEXT	Length= 0000004A Public STDCALL
+  INPUTSTART . . . . . . . . . .	L Near	 0000035F _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 000003A6 _TEXT	
 Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -1336,18 +1428,21 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000220 Public STDCALL
-  ALGSTART . . . . . . . . . . .	L Near	 00000026 _TEXT	
-  TESTLOOP . . . . . . . . . . .	L Near	 0000002B _TEXT	
-  GAMESTART  . . . . . . . . . .	L Near	 00000074 _TEXT	
-  STARTNEWGAME . . . . . . . . .	L Near	 00000083 _TEXT	
-  BOARDCREATED . . . . . . . . .	L Near	 000000A0 _TEXT	
-  GAMELOOP . . . . . . . . . . .	L Near	 000000A5 _TEXT	
-  NONMOVEENTRY . . . . . . . . .	L Near	 000000C6 _TEXT	
-  ENDNONMOVEENTRY  . . . . . . .	L Near	 000000CB _TEXT	
-  ENDGAMELOOP  . . . . . . . . .	L Near	 000001AA _TEXT	
-  WIN  . . . . . . . . . . . . .	L Near	 000001AC _TEXT	
-  quit . . . . . . . . . . . . .	L Near	 00000219 _TEXT	
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000002AB Public STDCALL
+  ALGSTART . . . . . . . . . . .	L Near	 0000002C _TEXT	
+  STARTPATH  . . . . . . . . . .	L Near	 00000054 _TEXT	
+  SOLUTIONFOUND  . . . . . . . .	L Near	 00000093 _TEXT	
+  TRIVIALSOLUTION  . . . . . . .	L Near	 000000E9 _TEXT	
+  FINISHED . . . . . . . . . . .	L Near	 000000FA _TEXT	
+  GAMESTART  . . . . . . . . . .	L Near	 000000FF _TEXT	
+  STARTNEWGAME . . . . . . . . .	L Near	 0000010E _TEXT	
+  BOARDCREATED . . . . . . . . .	L Near	 0000012B _TEXT	
+  GAMELOOP . . . . . . . . . . .	L Near	 00000130 _TEXT	
+  NONMOVEENTRY . . . . . . . . .	L Near	 00000151 _TEXT	
+  ENDNONMOVEENTRY  . . . . . . .	L Near	 00000156 _TEXT	
+  ENDGAMELOOP  . . . . . . . . .	L Near	 00000235 _TEXT	
+  WIN  . . . . . . . . . . . . .	L Near	 00000237 _TEXT	
+  quit . . . . . . . . . . . . .	L Near	 000002A4 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -1358,29 +1453,34 @@ Symbols:
                 N a m e                 Type     Value    Attr
 
 ??0000 . . . . . . . . . . . . .	Byte	 00000077 _DATA	
-??0001 . . . . . . . . . . . . .	Byte	 0000008B _DATA	
-??0002 . . . . . . . . . . . . .	Byte	 0000009F _DATA	
-??0003 . . . . . . . . . . . . .	Byte	 000000C4 _DATA	
-??0004 . . . . . . . . . . . . .	Byte	 000000DE _DATA	
-??0005 . . . . . . . . . . . . .	Byte	 000000F0 _DATA	
-??0006 . . . . . . . . . . . . .	Byte	 00000112 _DATA	
-??0007 . . . . . . . . . . . . .	Byte	 00000135 _DATA	
-??0008 . . . . . . . . . . . . .	Byte	 00000158 _DATA	
-??0009 . . . . . . . . . . . . .	Byte	 00000180 _DATA	
-??000A . . . . . . . . . . . . .	Byte	 0000019F _DATA	
-??000B . . . . . . . . . . . . .	Byte	 000001BA _DATA	
-??000C . . . . . . . . . . . . .	Byte	 000001D0 _DATA	
-??000D . . . . . . . . . . . . .	Byte	 000001E0 _DATA	
-??000E . . . . . . . . . . . . .	Byte	 000001FB _DATA	
-??000F . . . . . . . . . . . . .	Byte	 00000214 _DATA	
-??0010 . . . . . . . . . . . . .	Byte	 00000243 _DATA	
-??0011 . . . . . . . . . . . . .	Byte	 00000259 _DATA	
-??0012 . . . . . . . . . . . . .	Byte	 0000026A _DATA	
-??0013 . . . . . . . . . . . . .	Byte	 00000279 _DATA	
-??0014 . . . . . . . . . . . . .	Byte	 0000028A _DATA	
-??0015 . . . . . . . . . . . . .	Byte	 0000029B _DATA	
-??0016 . . . . . . . . . . . . .	Byte	 000002AD _DATA	
-??0017 . . . . . . . . . . . . .	Byte	 000002BD _DATA	
+??0001 . . . . . . . . . . . . .	Byte	 00000089 _DATA	
+??0002 . . . . . . . . . . . . .	Byte	 0000009D _DATA	
+??0003 . . . . . . . . . . . . .	Byte	 000000C2 _DATA	
+??0004 . . . . . . . . . . . . .	Byte	 000000D6 _DATA	
+??0005 . . . . . . . . . . . . .	Byte	 000000F4 _DATA	
+??0006 . . . . . . . . . . . . .	Byte	 00000108 _DATA	
+??0007 . . . . . . . . . . . . .	Byte	 0000011C _DATA	
+??0008 . . . . . . . . . . . . .	Byte	 00000141 _DATA	
+??0009 . . . . . . . . . . . . .	Byte	 0000015B _DATA	
+??000A . . . . . . . . . . . . .	Byte	 0000016D _DATA	
+??000B . . . . . . . . . . . . .	Byte	 0000018F _DATA	
+??000C . . . . . . . . . . . . .	Byte	 000001B2 _DATA	
+??000D . . . . . . . . . . . . .	Byte	 000001D5 _DATA	
+??000E . . . . . . . . . . . . .	Byte	 000001FD _DATA	
+??000F . . . . . . . . . . . . .	Byte	 0000021C _DATA	
+??0010 . . . . . . . . . . . . .	Byte	 00000237 _DATA	
+??0011 . . . . . . . . . . . . .	Byte	 0000024D _DATA	
+??0012 . . . . . . . . . . . . .	Byte	 0000025D _DATA	
+??0013 . . . . . . . . . . . . .	Byte	 00000278 _DATA	
+??0014 . . . . . . . . . . . . .	Byte	 00000291 _DATA	
+??0015 . . . . . . . . . . . . .	Byte	 000002C0 _DATA	
+??0016 . . . . . . . . . . . . .	Byte	 000002D6 _DATA	
+??0017 . . . . . . . . . . . . .	Byte	 000002E7 _DATA	
+??0018 . . . . . . . . . . . . .	Byte	 000002F6 _DATA	
+??0019 . . . . . . . . . . . . .	Byte	 00000307 _DATA	
+??001A . . . . . . . . . . . . .	Byte	 00000318 _DATA	
+??001B . . . . . . . . . . . . .	Byte	 0000032A _DATA	
+??001C . . . . . . . . . . . . .	Byte	 0000033A _DATA	
 @CodeSize  . . . . . . . . . . .	Number	 00000000h   
 @DataSize  . . . . . . . . . . .	Number	 00000000h   
 @Interface . . . . . . . . . . .	Number	 00000003h   
@@ -1600,6 +1700,7 @@ WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
+currentBoard . . . . . . . . . .	DWord	 0000006F _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
 filename . . . . . . . . . . . .	Byte	 00000000 _DATA	
@@ -1613,9 +1714,8 @@ lightMagenta . . . . . . . . . .	Number	 0000000Dh
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
 numOfMoves . . . . . . . . . . .	DWord	 0000006B _DATA	
+priorityQueue  . . . . . . . . .	DWord	 00000073 _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-testb  . . . . . . . . . . . . .	DWord	 00000073 _DATA	
-testmh . . . . . . . . . . . . .	DWord	 0000006F _DATA	
 userInput  . . . . . . . . . . .	Byte	 00000065 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
