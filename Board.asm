@@ -55,6 +55,66 @@ B_CreateObj ENDP
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_MakeCopy PROC uses ebx ecx edx ebp esi
+; Makes a copy instance of the current instance
+; @param this_ptr - Address of current instance
+; @return EAX - Address of new instance
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 4, 0 ; 1 LOCAL
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 28]
+
+	; Local
+	CopyBoardPtr EQU [ebp - 4]
+  
+	; Macros
+  Instance EQU (Board PTR [ebx])
+	BVPtr EQU edx
+	HeapIter EQU esi
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	
+	; Allocates new space for a copy
+	INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
+
+  mWrite "Creating new copy Board at: "
+  call WriteHex
+  call CRLF
+	mov HeapIter, eax
+	mov CopyBoardPtr, eax
+
+	; Creates a copy of the bytevector
+	mov BVPtr, Instance.VectorPtr
+	push BVPtr
+	call BV_MakeCopy
+
+	; Stores copy of bytevector in board copy
+	mov DWORD PTR [heapIter], eax
+	add heapIter, TYPE DWORD
+
+	; Copies zeropos, dirlock, and distance
+	mov al, Instance.ZeroPos
+	mov BYTE PTR [heapIter], al
+	add heapIter, TYPE BYTE
+
+  mov al, Instance.DirLock
+	mov BYTE PTR [heapIter], al
+	add heapIter, TYPE BYTE
+
+	mov al, Instance.Distance
+	mov BYTE PTR [heapIter], al
+
+	; Restores address of new board to return EAX
+	mov eax, CopyBoardPtr
+
+	LEAVE
+	RET 4 ; ONE PARAMETER
+B_MakeCopy ENDP
+
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_DeleteObj PROC uses eax ebx ecx ebp
 ; Frees the heap for the corresponding handle
 ; @param this_ptr - Pointer to address in heap

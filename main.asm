@@ -101,6 +101,13 @@ main PROC
 	push eax
 	call B_PrintBoard
 
+	push eax
+	push eax
+	call B_MakeCopy
+	push eax
+	call B_DeleteObj
+	pop eax
+
 
 	;mov edx, OFFSET filename
 	;push edx

@@ -1,12 +1,10 @@
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 16:50:53
-main.asm						     Page 1 - 1
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 17:24:13
+Board.asm						     Page 1 - 1
 
 
 				.386
-				.model flat,stdcall
+				.model flat, stdcall
 				.stack 4096
-				ExitProcess proto, dwExitCode:dword
-
 
 				INCLUDE Irvine32.inc
 			      C ; Include file for Irvine32.lib             (Irvine32.inc)
@@ -31,11 +29,6 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 				INCLUDE Macros.inc
 			      C .NOLIST
 			      C .LIST
-			      C 
-
-				INCLUDE UtilProcedures.inc
-			      C UTIL_SetColor PROTO
-			      C UTIL_ReadString PROTO
 			      C 
 				INCLUDE ByteVector.inc
 			      C 
@@ -78,6 +71,7 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 			      C 
 			      C 
 			      C 
+
 				INCLUDE Board.inc
 			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
 			      C ; Structure Definitions
@@ -94,7 +88,7 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
 			      C ; Board Instances
 			      C B_CreateObj PROTO
-			      C ;B_MakeCopy PROTO
+			      C B_MakeCopy PROTO
 			      C B_DeleteObj PROTO
 			      C B_SetupBoard PROTO
 			      C 
@@ -127,118 +121,1005 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 
  00000000			.DATA
 
- 00000000 00000000		hHeap HANDLE ?
- 00000004 00000000		pArray DWORD ?
- 00000008 00000000		newHeap DWORD ?
- 0000000C 48 65 61 70 20	str1 BYTE "Heap size is: ", 0
-	   73 69 7A 65 20
-	   69 73 3A 20 00
+ 00000000 00000000		  hHeap HANDLE ?
 
+					; 8 Bytes (size is 7 bytes)
+ 00000004 00000008		  mainByteSize DWORD sizeof Board + 1
 
- = 00000064			MAX_STR_LENGTH = 100
- 0000001B  00000065 [		filename BYTE MAX_STR_LENGTH+1 DUP (?)
+					; Max buffer size for read file
+ = 00000009				BUFFERSIZE = 9
+ 00000008  0000000A [			buffer BYTE BUFFERSIZE+1 DUP(?)
 	    00
 	   ]
 
+
  00000000			.CODE
 
- 00000000			main PROC
+				; Instance Methods - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000000			B_CreateObj PROC uses ecx esi edx
+				; Allocates 8 Bytes and creates Board instance
+				; @return EAX - Address of new board instance
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+				  ; *  *  *  *  *  *  *  *  *
+					; Macros
+ = esi				  NewInstanceAddress EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+ 00000000  51		   *	    push   ecx
+ 00000001  56		   *	    push   esi
+ 00000002  52		   *	    push   edx
+				  INVOKE GetProcessHeap
+ 00000003  E8 00000000 E   *	    call   GetProcessHeap
+ 00000008  A3 00000000 R	  mov hHeap, eax
 
- 00000000  E8 00000000 E	  call UTIL_SetColor
+				  INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
+ 0000000D  FF 35 00000004 R *	    push   mainByteSize
+ 00000013  6A 08	   *	    push   +000000008h
+ 00000015  FF 35 00000000 R *	    push   hHeap
+ 0000001B  E8 00000000 E   *	    call   HeapAlloc
 
-					; BYTE VECTOR TESTS - - - - - - - - - - - - - - - - - -
- 00000005  B9 00000064		  mov ecx, 100
+				  mWrite "Creating new Board at: "
+ 00000012		     1		.data		
+ 00000012 43 72 65 61 74     1		??0000 BYTE "Creating new Board at: ",0	
+	   69 6E 67 20 6E
+	   65 77 20 42 6F
+	   61 72 64 20 61
+	   74 3A 20 00
+ 00000020		     1		.code
+ 00000020  52		     1		push	edx
+ 00000021  BA 00000012 R     1		mov	edx,OFFSET ??0000
+ 00000026  E8 00000000 E     1		call	WriteString
+ 0000002B  5A		     1		pop	edx
+ 0000002C  E8 00000000 E	  call WriteHex
+ 00000031  E8 00000000 E	  call CRLF
+
+ 00000036  8B F0			mov NewInstanceAddress, eax
+
+				  ; Creates byteVector for VectorPtr member
+ 00000038  E8 00000000 E	  call BV_CreateObj
+ 0000003D  89 06			mov DWORD PTR [NewInstanceAddress], eax
+
+					; Restore original address in eax as return value
+ 0000003F  8B C6			mov eax, NewInstanceAddress
+
+					RET
+ 00000041  5A		   *	    pop    edx
+ 00000042  5E		   *	    pop    esi
+ 00000043  59		   *	    pop    ecx
+ 00000044  C3		   *	    ret    00000h
+ 00000045			B_CreateObj ENDP
+
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000045			B_MakeCopy PROC uses ebx ecx edx ebp esi
+				; Makes a copy instance of the current instance
+				; @param this_ptr - Address of current instance
+				; @return EAX - Address of new instance
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000045  53		   *	    push   ebx
+ 00000046  51		   *	    push   ecx
+ 00000047  52		   *	    push   edx
+ 00000048  55		   *	    push   ebp
+ 00000049  56		   *	    push   esi
+ 0000004A  C8 0004 00			ENTER 4, 0 ; 1 LOCAL
+					; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 28]			  this_ptr EQU [ebp + 28]
+
+					; Local
+ = [ebp - 4]				CopyBoardPtr EQU [ebp - 4]
 				  
- 0000000A			  L1:
- 0000000A  E8 00000000 E	  call BV_CreateObj
-				  
- 0000000F  6A 01		  push 1
- 00000011  50			  push eax
- 00000012  E8 00000000 E	  call BV_PushBack
-				  
- 00000017  6A 02		  push 2
- 00000019  50			  push eax
- 0000001A  E8 00000000 E	  call BV_PushBack
-				  
- 0000001F  6A 03		  push 3
- 00000021  50			  push eax
- 00000022  E8 00000000 E	  call BV_PushBack
-				  
- 00000027  6A 04		  push 4
- 00000029  50			  push eax
- 0000002A  E8 00000000 E	  call BV_PushBack
-				  
- 0000002F  6A 08		  push 8
- 00000031  50			  push eax
- 00000032  E8 00000000 E	  call BV_PushBack
+					; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = edx					BVPtr EQU edx
+ = esi					HeapIter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
 
- 00000037  6A 03			push 3
- 00000039  6A 01			push 1
- 0000003B  50				push eax
- 0000003C  E8 00000000 E		call BV_Swap
+ 0000004E  8B 5D 1C			mov ebx, this_ptr
+					
+					; Allocates new space for a copy
+					INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
+ 00000051  FF 35 00000004 R *	    push   mainByteSize
+ 00000057  6A 08	   *	    push   +000000008h
+ 00000059  FF 35 00000000 R *	    push   hHeap
+ 0000005F  E8 00000000 E   *	    call   HeapAlloc
 
- 00000041  50				push eax
- 00000042  50				push eax
- 00000043  E8 00000000 E	  call BV_Pop
- 00000048  58				pop eax
+				  mWrite "Creating new copy Board at: "
+ 0000002A		     1		.data		
+ 0000002A 43 72 65 61 74     1		??0001 BYTE "Creating new copy Board at: ",0	
+	   69 6E 67 20 6E
+	   65 77 20 63 6F
+	   70 79 20 42 6F
+	   61 72 64 20 61
+	   74 3A 20 00
+ 00000064		     1		.code
+ 00000064  52		     1		push	edx
+ 00000065  BA 0000002A R     1		mov	edx,OFFSET ??0001
+ 0000006A  E8 00000000 E     1		call	WriteString
+ 0000006F  5A		     1		pop	edx
+ 00000070  E8 00000000 E	  call WriteHex
+ 00000075  E8 00000000 E	  call CRLF
+ 0000007A  8B F0			mov HeapIter, eax
+ 0000007C  89 45 FC			mov CopyBoardPtr, eax
 
- 00000049  6A 13			push 19
- 0000004B  50				push eax
- 0000004C  E8 00000000 E		call BV_PushBack
+					; Creates a copy of the bytevector
+ 0000007F  8B 13			mov BVPtr, Instance.VectorPtr
+ 00000081  52				push BVPtr
+ 00000082  E8 00000000 E		call BV_MakeCopy
 
- 00000051  50			  push eax
- 00000052  E8 00000000 E	  call BV_DeleteObj
- 00000057  E2 B1		  loop L1
+					; Stores copy of bytevector in board copy
+ 00000087  89 06			mov DWORD PTR [heapIter], eax
+ 00000089  83 C6 04			add heapIter, TYPE DWORD
 
-					; - - - - - - - - - - - - - - - - - - - - - - -
+					; Copies zeropos, dirlock, and distance
+ 0000008C  8A 43 04			mov al, Instance.ZeroPos
+ 0000008F  88 06			mov BYTE PTR [heapIter], al
+ 00000091  83 C6 01			add heapIter, TYPE BYTE
 
+ 00000094  8A 43 05		  mov al, Instance.DirLock
+ 00000097  88 06			mov BYTE PTR [heapIter], al
+ 00000099  83 C6 01			add heapIter, TYPE BYTE
 
-					;mWrite "Name of file to open? : "
-					;mov edx, OFFSET filename
-					;push edx
-					;call UTIL_ReadString
-					;call CRLF
+ 0000009C  8A 43 06			mov al, Instance.Distance
+ 0000009F  88 06			mov BYTE PTR [heapIter], al
 
-					; BOARD TESTS - - - - - - - - - - - - - - - - - 
- 00000059  B9 000003E8			mov ecx, 1000
- 0000005E				L2:
- 0000005E  E8 00000000 E		call B_CreateObj
+					; Restores address of new board to return EAX
+ 000000A1  8B 45 FC			mov eax, CopyBoardPtr
 
- 00000063  6A 01			push 1
- 00000065  6A 02			push 2
- 00000067  6A 03			push 3
- 00000069  6A 04			push 4
- 0000006B  6A 05			push 5
- 0000006D  6A 06			push 6
- 0000006F  6A 07			push 7
- 00000071  6A 08			push 8
- 00000073  6A 00			push 0
- 00000075  50				push eax
- 00000076  E8 00000000 E	 	call B_SetupBoard
-
- 0000007B  50				push eax
- 0000007C  E8 00000000 E		call B_PrintBoard
+ 000000A4  C9				LEAVE
+ 000000A5  5E		   *	    pop    esi
+ 000000A6  5D		   *	    pop    ebp
+ 000000A7  5A		   *	    pop    edx
+ 000000A8  59		   *	    pop    ecx
+ 000000A9  5B		   *	    pop    ebx
+ 000000AA  C2 0004			RET 4 ; ONE PARAMETER
+ 000000AD			B_MakeCopy ENDP
 
 
-					;mov edx, OFFSET filename
-					;push edx
-					;push eax
-					;call B_ReadFile
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000000AD			B_DeleteObj PROC uses eax ebx ecx ebp
+				; Frees the heap for the corresponding handle
+				; @param this_ptr - Pointer to address in heap
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000000AD  50		   *	    push   eax
+ 000000AE  53		   *	    push   ebx
+ 000000AF  51		   *	    push   ecx
+ 000000B0  55		   *	    push   ebp
+ 000000B1  C8 0000 00		  ENTER 0, 0
 
- 00000081  50				push eax
- 00000082  E8 00000000 E		call B_DeleteObj
- 00000087  E2 D5			loop L2
-					; - - - - - - - - - - - - - - - - - - - - - - -
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 24]			  this_ptr EQU [ebp + 24]
 
- 00000089			  quit:
- 00000089  E8 00000000 E	  call WaitMsg
-				  EXIT
- 0000008E  6A 00	   *	    push   +000000000h
- 00000090  E8 00000000 E   *	    call   ExitProcess
- 00000095			main ENDP
-				END main
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 16:50:53
-main.asm						     Symbols 2 - 1
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+				  ; *  *  *  *  *  *  *  *  *
+
+ 000000B5  8B 5D 18		  mov ebx, this_ptr
+
+					; Deletes byte vector object
+ 000000B8  FF 33		  push Instance.VectorPtr ; LEGAL?!
+ 000000BA  E8 00000000 E		call BV_DeleteObj
+
+				  INVOKE HeapFree, hHeap, 0, this_ptr
+ 000000BF  FF 75 18	   *	    push   dword  ptr [ebp]+000000018h
+ 000000C2  6A 00	   *	    push   +000000000h
+ 000000C4  FF 35 00000000 R *	    push   hHeap
+ 000000CA  E8 00000000 E   *	    call   HeapFree
+				  .IF eax == 0
+ 000000CF  0B C0	   *	    or	eax, eax
+ 000000D1  75 11	   *	    jne    @C0001
+				    mWriteLn "Failed to free heap for Board Object"
+ 00000047		     2		.data		
+ 00000047 46 61 69 6C 65     2		??0002 BYTE "Failed to free heap for Board Object",0	
+	   64 20 74 6F 20
+	   66 72 65 65 20
+	   68 65 61 70 20
+	   66 6F 72 20 42
+	   6F 61 72 64 20
+	   4F 62 6A 65 63
+	   74 00
+ 000000D3		     2		.code
+ 000000D3  52		     2		push	edx
+ 000000D4  BA 00000047 R     2		mov	edx,OFFSET ??0002
+ 000000D9  E8 00000000 E     2		call	WriteString
+ 000000DE  5A		     2		pop	edx
+ 000000DF  E8 00000000 E     1		call	Crlf
+				  .ENDIF
+ 000000E4		   *@C0001:
+
+ 000000E4			  QUIT:
+ 000000E4  C9			  LEAVE
+ 000000E5  5D		   *	    pop    ebp
+ 000000E6  59		   *	    pop    ecx
+ 000000E7  5B		   *	    pop    ebx
+ 000000E8  58		   *	    pop    eax
+ 000000E9  C2 0004		  RET 4
+ 000000EC			B_DeleteObj ENDP
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000000EC			B_SetupBoard PROC uses eax ebx ecx ebp esi
+				; Inserts parameters into byte vector for board
+				; @param this_ptr - Instance address 
+				; @param v8 through v0 - Values to push into vector
+				; Note the values will be pushed in in-order (8 - 0)
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000000EC  50		   *	    push   eax
+ 000000ED  53		   *	    push   ebx
+ 000000EE  51		   *	    push   ecx
+ 000000EF  55		   *	    push   ebp
+ 000000F0  56		   *	    push   esi
+ 000000F1  C8 0004 00		  ENTER 4, 0 ; NO LOCALS
+					; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 28]			  this_ptr EQU [ebp + 28]
+ = [ebp + 32]				v8 EQU [ebp + 32]
+ = [ebp + 36]				v7 EQU [ebp + 36]
+ = [ebp + 40]				v6 EQU [ebp + 40]
+ = [ebp + 44]				v5 EQU [ebp + 44]
+ = [ebp + 48]				v4 EQU [ebp + 48]
+ = [ebp + 52]				v3 EQU [ebp + 52]
+ = [ebp + 56]				v2 EQU [ebp + 56]
+ = [ebp + 60]				v1 EQU [ebp + 60]
+ = [ebp + 64]				v0 EQU [ebp + 64]
+
+					; Locals
+ = [ebp - 4]				ByteVectorPtr EQU [ebp - 4]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = esi					ValueIter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+
+ 000000F5  8B 5D 1C			mov ebx, this_ptr
+ 000000F8  8B 03			mov eax, Instance.VectorPtr
+ 000000FA  89 45 FC		  mov ByteVectorPtr, eax
+
+					; Sets up iter to go through value parameters
+ 000000FD  8B F5			mov ValueIter, ebp
+ 000000FF  83 C6 40			add ValueIter, 64 ; Set to v0
+
+					; Push all value parameters into vector
+ 00000102  B9 00000009			mov ecx, 9
+ 00000107				INITLOOP:
+ 00000107  FF 36				push [ValueIter]
+ 00000109  FF 75 FC				push ByteVectorPtr
+ 0000010C  E8 00000000 E			call BV_PushBack
+
+ 00000111  83 EE 04				sub ValueIter, TYPE DWORD
+ 00000114  E2 F1			loop INITLOOP
+
+ 00000116  53				push ebx
+ 00000117  E8 00000244			call _B_FindZeroPos
+
+ 0000011C  53				push ebx
+ 0000011D  E8 0000029F			call _B_CalcDistance
+
+ 00000122  C9				LEAVE
+ 00000123  5E		   *	    pop    esi
+ 00000124  5D		   *	    pop    ebp
+ 00000125  59		   *	    pop    ecx
+ 00000126  5B		   *	    pop    ebx
+ 00000127  58		   *	    pop    eax
+ 00000128  C2 0028			RET 40 ; 10 PARAMETERS
+
+ 0000012B			B_SetupBoard ENDP
+
+
+				; BOARD METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 0000012B			B_SwapUp PROC uses ebx edx ebp
+				; Swaps the zero position up a row
+				; @param this_ptr - Address of instance
+				; @return EAX - 1: success, 0: failed
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 0000012B  53		   *	    push   ebx
+ 0000012C  52		   *	    push   edx
+ 0000012D  55		   *	    push   ebp
+ 0000012E  C8 0004 00		  ENTER 4, 0 ; 1 LOCAL
+
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 20]			  this_ptr EQU [ebp + 20]
+
+					; Local
+ = [ebp - 4]				BVPtr EQU [ebp - 4]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+				  ; *  *  *  *  *  *  *  *  *
+
+					; Get zeropos into edx
+ 00000132  8B 5D 14			mov ebx, this_ptr
+ 00000135  0F B6 53 04			movzx edx, Instance.ZeroPos
+ 00000139  8B 03			mov eax, Instance.VectorPtr
+ 0000013B  89 45 FC			mov BVPtr, eax
+
+					; Throw if zeropos is in top row
+					.IF (edx < 3)
+ 0000013E  83 FA 03	   *	    cmp    edx, 003h
+ 00000141  73 07	   *	    jae    @C0003
+ 00000143  B8 00000000			  mov eax, 0
+ 00000148  EB 16				jmp QUIT
+					.ENDIF
+ 0000014A		   *@C0003:
+
+					; Swap zeropos and zeropos - 3
+					; then updates zeropos location
+ 0000014A  52				push edx
+ 0000014B  83 EA 03			sub edx, 3
+ 0000014E  66| 89 53 04			mov WORD PTR [Instance.ZeroPos], dx
+ 00000152  52				push edx
+ 00000153  FF 75 FC			push BVPtr
+ 00000156  E8 00000000 E		call BV_Swap
+
+					; Sets eax as success
+ 0000015B  B8 00000001			mov eax, 1
+
+ 00000160				QUIT:
+ 00000160  C9				LEAVE
+ 00000161  5D		   *	    pop    ebp
+ 00000162  5A		   *	    pop    edx
+ 00000163  5B		   *	    pop    ebx
+ 00000164  C2 0004			RET 4     ; 1 Param
+ 00000167			B_SwapUp ENDP
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000167			B_SwapRight PROC uses ebx ecx edx ebp
+				; Swaps the zero position right
+				; @param this_ptr - Address of instance
+				; @return EAX - 1: success, 0: failed
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000167  53		   *	    push   ebx
+ 00000168  51		   *	    push   ecx
+ 00000169  52		   *	    push   edx
+ 0000016A  55		   *	    push   ebp
+ 0000016B  C8 0008 00		  ENTER 8, 0 ; 2 LOCAL
+
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 24]			  this_ptr EQU [ebp + 24]
+
+					; Local
+ = [ebp - 4]				BVPtr EQU [ebp - 4]
+ = [ebp - 8]				Mod3 EQU [ebp - 8]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+				  ; *  *  *  *  *  *  *  *  *
+
+					; Get zeropos into edx
+ 0000016F  8B 5D 18			mov ebx, this_ptr
+ 00000172  0F B6 53 04			movzx edx, Instance.ZeroPos
+ 00000176  8B 03			mov eax, Instance.VectorPtr
+ 00000178  89 45 FC			mov BVPtr, eax
+
+					; Gets modulo of zeropos % 3
+ 0000017B  50				push eax
+ 0000017C  52				  push edx
+ 0000017D  8B C2			    mov eax, edx
+ 0000017F  BA 00000000			    mov edx, 0
+ 00000184  B9 00000003			    mov ecx, 3
+ 00000189  F7 F1					div ecx
+ 0000018B  89 55 F8					mov Mod3, edx
+ 0000018E  5A				  pop edx
+ 0000018F  58				pop eax
+
+					; Throw if zeropos is in right column
+ 00000190  8B 4D F8			mov ecx, Mod3
+					.IF (ecx == 2)
+ 00000193  83 F9 02	   *	    cmp    ecx, 002h
+ 00000196  75 07	   *	    jne    @C0005
+ 00000198  B8 00000000			  mov eax, 0
+ 0000019D  EB 16				jmp QUIT
+					.ENDIF
+ 0000019F		   *@C0005:
+
+					; Swap zeropos and zeropos + 1
+					; then updates zeropos location
+ 0000019F  52				push edx
+ 000001A0  83 C2 01			add edx, 1
+ 000001A3  66| 89 53 04			mov WORD PTR [Instance.ZeroPos], dx
+ 000001A7  52				push edx
+ 000001A8  FF 75 FC			push BVPtr
+ 000001AB  E8 00000000 E		call BV_Swap
+
+					; Sets eax as success
+ 000001B0  B8 00000001			mov eax, 1
+
+ 000001B5				QUIT:
+ 000001B5  C9				LEAVE
+ 000001B6  5D		   *	    pop    ebp
+ 000001B7  5A		   *	    pop    edx
+ 000001B8  59		   *	    pop    ecx
+ 000001B9  5B		   *	    pop    ebx
+ 000001BA  C2 0004			RET 4     ; 1 Param
+ 000001BD			B_SwapRight ENDP
+
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000001BD			B_SwapDown PROC uses ebx edx ebp
+				; Swaps the zero position down a row
+				; @param this_ptr - Address of instance
+				; @return EAX - 1: success, 0: failed
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000001BD  53		   *	    push   ebx
+ 000001BE  52		   *	    push   edx
+ 000001BF  55		   *	    push   ebp
+ 000001C0  C8 0004 00		  ENTER 4, 0 ; 1 LOCAL
+
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 20]			  this_ptr EQU [ebp + 20]
+
+					; Local
+ = [ebp - 4]				BVPtr EQU [ebp - 4]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+				  ; *  *  *  *  *  *  *  *  *
+
+					; Get zeropos into edx
+ 000001C4  8B 5D 14			mov ebx, this_ptr
+ 000001C7  0F B6 53 04			movzx edx, Instance.ZeroPos
+ 000001CB  8B 03			mov eax, Instance.VectorPtr
+ 000001CD  89 45 FC			mov BVPtr, eax
+
+					; Throw if zeropos is in bottom row
+					.IF (edx > 5)
+ 000001D0  83 FA 05	   *	    cmp    edx, 005h
+ 000001D3  76 07	   *	    jbe    @C0007
+ 000001D5  B8 00000000			  mov eax, 0
+ 000001DA  EB 16				jmp QUIT
+					.ENDIF
+ 000001DC		   *@C0007:
+
+					; Swap zeropos and zeropos + 3
+					; then updates zeropos location
+ 000001DC  52				push edx
+ 000001DD  83 C2 03			add edx, 3
+ 000001E0  66| 89 53 04			mov WORD PTR [Instance.ZeroPos], dx
+ 000001E4  52				push edx
+ 000001E5  FF 75 FC			push BVPtr
+ 000001E8  E8 00000000 E		call BV_Swap
+
+					; Sets eax as success
+ 000001ED  B8 00000001			mov eax, 1
+
+ 000001F2				QUIT:
+ 000001F2  C9				LEAVE
+ 000001F3  5D		   *	    pop    ebp
+ 000001F4  5A		   *	    pop    edx
+ 000001F5  5B		   *	    pop    ebx
+ 000001F6  C2 0004			RET 4     ; 1 Param
+ 000001F9			B_SwapDown ENDP
+
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000001F9			B_SwapLeft PROC uses ebx ecx edx ebp
+				; Swaps the zero position left
+				; @param this_ptr - Address of instance
+				; @return EAX - 1: success, 0: failed
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000001F9  53		   *	    push   ebx
+ 000001FA  51		   *	    push   ecx
+ 000001FB  52		   *	    push   edx
+ 000001FC  55		   *	    push   ebp
+ 000001FD  C8 0008 00		  ENTER 8, 0 ; 2 LOCAL
+
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 24]			  this_ptr EQU [ebp + 24]
+
+					; Local
+ = [ebp - 4]				BVPtr EQU [ebp - 4]
+ = [ebp - 8]				Mod3 EQU [ebp - 8]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+				  ; *  *  *  *  *  *  *  *  *
+
+					; Get zeropos into edx
+ 00000201  8B 5D 18			mov ebx, this_ptr
+ 00000204  0F B6 53 04			movzx edx, Instance.ZeroPos
+ 00000208  8B 03			mov eax, Instance.VectorPtr
+ 0000020A  89 45 FC			mov BVPtr, eax
+
+					; Gets modulo of zeropos % 3
+ 0000020D  50				push eax
+ 0000020E  52				  push edx
+ 0000020F  8B C2			    mov eax, edx
+ 00000211  BA 00000000			    mov edx, 0
+ 00000216  B9 00000003			    mov ecx, 3
+ 0000021B  F7 F1					div ecx
+ 0000021D  89 55 F8					mov Mod3, edx
+ 00000220  5A				  pop edx
+ 00000221  58				pop eax
+
+					; Throw if zeropos is in right column
+ 00000222  8B 4D F8			mov ecx, Mod3
+					.IF (ecx == 0)
+ 00000225  0B C9	   *	    or	ecx, ecx
+ 00000227  75 07	   *	    jne    @C0009
+ 00000229  B8 00000000			  mov eax, 0
+ 0000022E  EB 16				jmp QUIT
+					.ENDIF
+ 00000230		   *@C0009:
+
+					; Swap zeropos and zeropos - 1
+					; then updates zeropos location
+ 00000230  52				push edx
+ 00000231  83 EA 01			sub edx, 1
+ 00000234  66| 89 53 04			mov WORD PTR [Instance.ZeroPos], dx
+ 00000238  52				push edx
+ 00000239  FF 75 FC			push BVPtr
+ 0000023C  E8 00000000 E		call BV_Swap
+
+					; Sets eax as success
+ 00000241  B8 00000001			mov eax, 1
+
+ 00000246				QUIT:
+ 00000246  C9				LEAVE
+ 00000247  5D		   *	    pop    ebp
+ 00000248  5A		   *	    pop    edx
+ 00000249  59		   *	    pop    ecx
+ 0000024A  5B		   *	    pop    ebx
+ 0000024B  C2 0004			RET 4     ; 1 Param
+ 0000024E			B_SwapLeft ENDP
+
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 0000024E			B_PrintBoard PROC uses eax ebx ecx edx ebp esi
+				; Prints the board object to console
+				; @param this_ptr - Pointer to instance
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 0000024E  50		   *	    push   eax
+ 0000024F  53		   *	    push   ebx
+ 00000250  51		   *	    push   ecx
+ 00000251  52		   *	    push   edx
+ 00000252  55		   *	    push   ebp
+ 00000253  56		   *	    push   esi
+ 00000254  C8 0004 00		  ENTER 4, 0 ; 1 LOCALS
+
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 32]			  this_ptr EQU [ebp + 32] ; 6 offset
+
+					; Local
+ = [ebp - 4]				BVPtr EQU [ebp - 4]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = esi					BVIter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+
+ 00000258  E8 00000000 E		call CRLF
+
+					; Set up local variables
+ 0000025D  8B 5D 20			mov ebx, this_ptr
+ 00000260  BE 00000000			mov BVIter, 0
+ 00000265  8B 03			mov eax, Instance.VectorPtr
+ 00000267  89 45 FC			mov BVPtr, eax
+
+					; Iterate through bytevector
+ 0000026A  B9 00000009			mov ecx, 9
+
+ 0000026F				PRINTLOOP:
+ 0000026F  56				push BVIter
+ 00000270  FF 75 FC			push BVPtr
+ 00000273  E8 00000000 E		call BV_At
+ 00000278  E8 00000000 E		call WriteDec
+					mWrite "  " 
+ 0000006C		     1		.data		
+ 0000006C 20 20 00	     1		??0003 BYTE "  ",0	
+ 0000027D		     1		.code
+ 0000027D  52		     1		push	edx
+ 0000027E  BA 0000006C R     1		mov	edx,OFFSET ??0003
+ 00000283  E8 00000000 E     1		call	WriteString
+ 00000288  5A		     1		pop	edx
+
+					; Prints NewLine every three items
+					; Notes: Modulo required edx == 0
+					;   Implicitly divides eax and stores
+					;   remainder in edx
+ 00000289  8B C6			mov eax, BVIter
+ 0000028B  BB 00000003			mov ebx, 3
+ 00000290  BA 00000000			mov edx, 0
+ 00000295  F7 F3			div ebx
+					.IF (edx == 2)
+ 00000297  83 FA 02	   *	    cmp    edx, 002h
+ 0000029A  75 0A	   *	    jne    @C000B
+ 0000029C  E8 00000000 E		  call CRLF
+ 000002A1  E8 00000000 E			call CRLF
+					.ENDIF
+ 000002A6		   *@C000B:
+
+ 000002A6  46				inc BVIter
+ 000002A7  E2 C6			loop PRINTLOOP
+
+ 000002A9  E8 00000000 E		call CRLF
+
+ 000002AE  C9				LEAVE
+ 000002AF  5E		   *	    pop    esi
+ 000002B0  5D		   *	    pop    ebp
+ 000002B1  5A		   *	    pop    edx
+ 000002B2  59		   *	    pop    ecx
+ 000002B3  5B		   *	    pop    ebx
+ 000002B4  58		   *	    pop    eax
+ 000002B5  C2 0004			RET 4     ; ONE PARAMETER
+ 000002B8			B_PrintBoard ENDP
+
+
+
+				; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000002B8			B_ReadFile PROC uses eax ebx ecx edx ebp esi
+				; Reads a board from a file and appends it to a Board object
+				; Note: The board object should have an empty byte vector!
+				; @param this_ptr - Address of instance
+				; @param file_name - Name of file to open (the offset)
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000002B8  50		   *	    push   eax
+ 000002B9  53		   *	    push   ebx
+ 000002BA  51		   *	    push   ecx
+ 000002BB  52		   *	    push   edx
+ 000002BC  55		   *	    push   ebp
+ 000002BD  56		   *	    push   esi
+ 000002BE  C8 0008 00			ENTER 8, 0 ; TWO LOCAL
+					; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 32]			  this_ptr EQU [ebp + 32]
+ = [ebp + 36]				file_name EQU [ebp + 36]
+
+					; Locals
+ = [ebp - 4]				ByteVectorPtr EQU [ebp - 4]
+ = [ebp - 8]				FileHandle EQU [ebp - 8]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = esi					BufferIter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+
+					mWriteLn "  Reading a text file..."
+ 0000006F		     2		.data		
+ 0000006F 20 20 52 65 61     2		??0004 BYTE "  Reading a text file...",0	
+	   64 69 6E 67 20
+	   61 20 74 65 78
+	   74 20 66 69 6C
+	   65 2E 2E 2E 00
+ 000002C2		     2		.code
+ 000002C2  52		     2		push	edx
+ 000002C3  BA 0000006F R     2		mov	edx,OFFSET ??0004
+ 000002C8  E8 00000000 E     2		call	WriteString
+ 000002CD  5A		     2		pop	edx
+ 000002CE  E8 00000000 E     1		call	Crlf
+					; Stores board and vector pointers
+ 000002D3  8B 5D 20			mov ebx, this_ptr
+ 000002D6  8B 03			mov eax, Instance.VectorPtr
+ 000002D8  89 45 FC			mov ByteVectorPtr, eax
+
+					; Gets file handle for given file name
+ 000002DB  8B 55 24			mov edx, file_name
+ 000002DE  E8 00000000 E		call OpenInputFile
+
+					.IF (eax == INVALID_HANDLE_VALUE)
+ 000002E3  83 F8 FF	   *	    cmp    eax, INVALID_HANDLE_VALUE
+ 000002E6  75 13	   *	    jne    @C000D
+					  mWriteLn "Error in B_ReadFile! Failed to open file"
+ 00000088		     2		.data		
+ 00000088 45 72 72 6F 72     2		??0005 BYTE "Error in B_ReadFile! Failed to open file",0	
+	   20 69 6E 20 42
+	   5F 52 65 61 64
+	   46 69 6C 65 21
+	   20 46 61 69 6C
+	   65 64 20 74 6F
+	   20 6F 70 65 6E
+	   20 66 69 6C 65
+	   00
+ 000002E8		     2		.code
+ 000002E8  52		     2		push	edx
+ 000002E9  BA 00000088 R     2		mov	edx,OFFSET ??0005
+ 000002EE  E8 00000000 E     2		call	WriteString
+ 000002F3  5A		     2		pop	edx
+ 000002F4  E8 00000000 E     1		call	Crlf
+ 000002F9  EB 5B				jmp QUIT
+					.ENDIF
+ 000002FB		   *@C000D:
+
+ 000002FB  89 45 F8			mov FileHandle, eax
+
+					; Reads file and puts result in buffer byte array
+					; Sets carry flag to true if it throws
+					; (This mutates EAX, ECX and EDX!)
+ 000002FE  8B 45 F8			mov eax, FileHandle
+ 00000301  BA 00000008 R		mov edx, OFFSET buffer
+ 00000306  B9 00000009			mov ecx, BUFFERSIZE
+ 0000030B  E8 00000000 E		call ReadFromFile
+ 00000310  72 3F			jc SHOWERRORMSG
+
+					; Adds null terminator at the end
+ 00000312  C6 05 00000011 R		mov buffer[9], 0
+	   00
+
+					; DEBUG: Write buffer to console
+ 00000319  BA 00000008 R		mov edx, OFFSET buffer
+ 0000031E  E8 00000000 E		call WriteString
+ 00000323  E8 00000000 E		call CRLF
+
+
+					; Sets ESI to the address of the dynamic array
+					; Then pushes each byte into the stack 
+ 00000328  B9 00000009			mov ecx, 9
+ 0000032D  BE 00000008 R		mov BufferIter, OFFSET buffer
+
+ 00000332				FILETOBOARDLOOP:
+ 00000332  0F B6 06				movzx eax, BYTE PTR [BufferIter]
+ 00000335  83 E8 30				sub eax, 48  ; ASCII Number to Int
+ 00000338  50					push eax
+ 00000339  E8 00000000 E			call WriteInt
+ 0000033E  E8 00000000 E			call CRLF
+ 00000343  46					inc BufferIter
+ 00000344  E2 EC			loop FILETOBOARDLOOP
+
+ 00000346  8B 5D 20			mov ebx, this_ptr
+ 00000349  53				push ebx
+ 0000034A  E8 FFFFFD9D		  call B_SetupBoard
+
+ 0000034F  EB 05			jmp QUIT
+ 00000351				SHOWERRORMSG:
+ 00000351  E8 00000000 E		  call WriteWindowsMsg
+
+ 00000356				QUIT:
+ 00000356  C9				LEAVE
+ 00000357  5E		   *	    pop    esi
+ 00000358  5D		   *	    pop    ebp
+ 00000359  5A		   *	    pop    edx
+ 0000035A  59		   *	    pop    ecx
+ 0000035B  5B		   *	    pop    ebx
+ 0000035C  58		   *	    pop    eax
+ 0000035D  C2 0008			RET 8 ; TWO PARAM
+ 00000360			B_ReadFile ENDP
+
+
+
+				; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000360			_B_FindZeroPos PROC uses eax ebx ecx edx ebp esi
+				; Linear search through the vector for the zero pos
+				; Then stores that position in member zeropos
+				; (ASSUMES BOARD VECTOR SET UP ALREADY)
+				; @param this_ptr - Address of instance
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 00000360  50		   *	    push   eax
+ 00000361  53		   *	    push   ebx
+ 00000362  51		   *	    push   ecx
+ 00000363  52		   *	    push   edx
+ 00000364  55		   *	    push   ebp
+ 00000365  56		   *	    push   esi
+ 00000366  C8 0000 00			ENTER 0, 0 ; NO LOCALS!
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 32]			  this_ptr EQU [ebp + 32]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = (ByteVector PTR [edx])		BVInstance EQU (ByteVector PTR [edx])
+ = eax					Counter EQU eax
+ = esi					SearchIter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+
+					; Stores address of dynamic array in SearchIter
+ 0000036A  8B 5D 20			mov ebx, this_ptr
+ 0000036D  8B 13			mov edx, Instance.VectorPtr
+ 0000036F  8B 32			mov SearchIter, BVInstance.Root
+
+					; Loops through vector until 0 is found
+					; Counter keeps track of current index
+ 00000371  B8 00000000			mov Counter, 0
+ 00000376  0F B7 4A 04			movzx ecx, BVInstance.VectorSize
+
+ 0000037A				SEARCHLOOP:
+ 0000037A  0F B6 1E				movzx ebx, BYTE PTR [SearchIter]
+ 0000037D  83 FB 00				cmp ebx, 0
+ 00000380  74 06				je FOUND
+ 00000382  40					inc Counter
+ 00000383  46					inc SearchIter
+ 00000384  E2 F4			loop SEARCHLOOP
+
+ 00000386  EB 1E			jmp NOTFOUND
+
+ 00000388				FOUND:
+					  mWrite "  Zeropos Found: "
+ 000000B1		     1		.data		
+ 000000B1 20 20 5A 65 72     1		??0006 BYTE "  Zeropos Found: ",0	
+	   6F 70 6F 73 20
+	   46 6F 75 6E 64
+	   3A 20 00
+ 00000388		     1		.code
+ 00000388  52		     1		push	edx
+ 00000389  BA 000000B1 R     1		mov	edx,OFFSET ??0006
+ 0000038E  E8 00000000 E     1		call	WriteString
+ 00000393  5A		     1		pop	edx
+ 00000394  E8 00000000 E		  call WriteInt
+ 00000399  E8 00000000 E			call CRLF
+
+ 0000039E  8B 5D 20				mov ebx, this_ptr
+ 000003A1  88 43 04				mov Instance.ZeroPos, al
+ 000003A4  EB 11				jmp QUIT
+
+ 000003A6				NOTFOUND:
+					  mWriteLn "Error in B_FindZeroPos! Zero not found"
+ 000000C3		     2		.data		
+ 000000C3 45 72 72 6F 72     2		??0007 BYTE "Error in B_FindZeroPos! Zero not found",0	
+	   20 69 6E 20 42
+	   5F 46 69 6E 64
+	   5A 65 72 6F 50
+	   6F 73 21 20 5A
+	   65 72 6F 20 6E
+	   6F 74 20 66 6F
+	   75 6E 64 00
+ 000003A6		     2		.code
+ 000003A6  52		     2		push	edx
+ 000003A7  BA 000000C3 R     2		mov	edx,OFFSET ??0007
+ 000003AC  E8 00000000 E     2		call	WriteString
+ 000003B1  5A		     2		pop	edx
+ 000003B2  E8 00000000 E     1		call	Crlf
+
+ 000003B7				QUIT:
+ 000003B7  C9				LEAVE
+ 000003B8  5E		   *	    pop    esi
+ 000003B9  5D		   *	    pop    ebp
+ 000003BA  5A		   *	    pop    edx
+ 000003BB  59		   *	    pop    ecx
+ 000003BC  5B		   *	    pop    ebx
+ 000003BD  58		   *	    pop    eax
+ 000003BE  C2 0004			RET 4 ; ONE PARAMETER
+ 000003C1			_B_FindZeroPos ENDP
+
+
+
+
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000003C1			_B_CalcDistance PROC uses eax ebx ecx edx ebp esi
+				; Calculates and sets the board distance
+				; using the manhattan distance equation
+				; (ASSUMES BOARD VECTOR SET UP ALREADY)
+				; @param this_ptr - Address of instance
+				; - - - - - - - - - - - - - - - - - - - - - - - - -
+ 000003C1  50		   *	    push   eax
+ 000003C2  53		   *	    push   ebx
+ 000003C3  51		   *	    push   ecx
+ 000003C4  52		   *	    push   edx
+ 000003C5  55		   *	    push   ebp
+ 000003C6  56		   *	    push   esi
+ 000003C7  C8 0024 00		  ENTER 36, 0 ; Nine LOCALS
+				  ; *  *  *  *  *  *  *  *  *
+				  ; Parameters
+ = [ebp + 32]			  this_ptr EQU [ebp + 32]
+
+					; Local
+ = [ebp - 4]				row1 EQU [ebp - 4]
+ = [ebp - 8]				row2 EQU [ebp - 8]
+ = [ebp - 12]				col1 EQU [ebp - 12]
+ = [ebp - 16]				col2 EQU [ebp - 16]
+ = [ebp - 20]				term1 EQU [ebp - 20]
+ = [ebp - 24]				term2 EQU [ebp - 24]
+ = [ebp - 28]				atVal EQU [ebp - 28]
+ = [ebp - 32]				BVPtr EQU [ebp - 32]
+ = [ebp - 36]				totalDist EQU [ebp - 36]
+
+				  ; Macros
+ = (Board PTR [ebx])		  Instance EQU (Board PTR [ebx])
+ = esi					Iter EQU esi
+				  ; *  *  *  *  *  *  *  *  *
+
+ 000003CB  8B 5D 20			mov ebx, this_ptr
+ 000003CE  8B 03			mov eax, Instance.VectorPtr
+ 000003D0  89 45 E0			mov BVPtr, eax
+
+					; Initialize totalDist to 0
+					; Initialize iter to 0
+ 000003D3  B8 00000000			mov eax, 0
+ 000003D8  89 45 DC			mov totalDist, eax
+ 000003DB  BE 00000000			mov Iter, 0
+ 000003E0  B9 00000009			mov ecx, 9
+
+					; ForEach(Atval, Iter)
+ 000003E5				MATHLOOP:  
+ 000003E5  56				  push Iter
+ 000003E6  FF 75 E0				push BVPtr
+ 000003E9  E8 00000000 E			call BV_At
+
+						; Intepret 0 as 9
+						.IF (eax == 0)
+ 000003EE  0B C0	   *	    or	eax, eax
+ 000003F0  75 05	   *	    jne    @C000F
+ 000003F2  B8 00000009				  mov eax, 9
+						.ENDIF
+ 000003F7		   *@C000F:
+
+ 000003F7  89 45 E4				mov atVal, eax
+						
+						; row1 = (x - 1) / 3
+ 000003FA  48					dec eax
+ 000003FB  BA 00000000				mov edx, 0
+ 00000400  BB 00000003				mov ebx, 3
+ 00000405  F7 F3				div ebx
+ 00000407  89 45 FC				mov row1, eax
+						
+						; row2 = (idx / 3)
+ 0000040A  8B C6				mov eax, Iter
+ 0000040C  BA 00000000				mov edx, 0
+ 00000411  BB 00000003				mov ebx, 3
+ 00000416  F7 F3				div ebx
+ 00000418  89 45 F8				mov row2, eax
+
+						; col1 = (x - 1) % 3
+ 0000041B  8B 45 E4				mov eax, atVal
+ 0000041E  48					dec eax
+ 0000041F  BA 00000000				mov edx, 0
+ 00000424  BB 00000003				mov ebx, 3
+ 00000429  F7 F3				div ebx
+ 0000042B  89 55 F4				mov col1, edx
+
+						; col2 = idx % 3
+ 0000042E  8B C6				mov eax, Iter
+ 00000430  BA 00000000				mov edx, 0
+ 00000435  BB 00000003				mov ebx, 3
+ 0000043A  F7 F3				div ebx
+ 0000043C  89 55 F0				mov col2, edx
+
+						; term1 = abs(row1 - row2)
+ 0000043F  8B 45 FC				mov eax, row1
+ 00000442  8B 5D F8				mov ebx, row2
+ 00000445  2B C3				sub eax, ebx
+ 00000447  99					cdq
+ 00000448  33 C2				xor eax, edx
+ 0000044A  2B C2				sub eax, edx
+ 0000044C  89 45 EC				mov term1, eax
+
+						; term2 = abs(col1 - col2)
+ 0000044F  8B 45 F4				mov eax, col1
+ 00000452  8B 5D F0				mov ebx, col2
+ 00000455  2B C3				sub eax, ebx
+ 00000457  99					cdq
+ 00000458  33 C2				xor eax, edx
+ 0000045A  2B C2				sub eax, edx
+ 0000045C  89 45 E8				mov term2, eax
+
+						; dist += term1 + term2
+ 0000045F  8B 45 EC				mov eax, term1
+ 00000462  8B 5D E8				mov ebx, term2
+ 00000465  03 C3				add eax, ebx
+ 00000467  8B 5D DC				mov ebx, totalDist
+ 0000046A  03 D8				add ebx, eax
+ 0000046C  89 5D DC				mov totalDist, ebx
+ 0000046F  46				inc Iter
+					; Jump destination is too far
+					; Manual ecx handling
+ 00000470  49				dec ecx
+ 00000471  0F 85 FFFFFF6E		jnz MATHLOOP
+
+ 00000477  8B 45 DC			mov eax, totalDist
+ 0000047A  E8 00000000 E		call WriteDec
+ 0000047F  E8 00000000 E		call CRLF
+ 00000484  8B 5D 20			mov ebx, this_ptr
+ 00000487  88 43 06			mov Instance.Distance, al
+
+ 0000048A  C9				LEAVE
+ 0000048B  5E		   *	    pop    esi
+ 0000048C  5D		   *	    pop    ebp
+ 0000048D  5A		   *	    pop    edx
+ 0000048E  59		   *	    pop    ecx
+ 0000048F  5B		   *	    pop    ebx
+ 00000490  58		   *	    pop    eax
+ 00000491  C2 0004			RET 4 ; ONE PARAMETER
+ 00000494			_B_CalcDistance ENDP
+				end
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 17:24:13
+Board.asm						     Symbols 2 - 1
 
 
 
@@ -358,8 +1239,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000080 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000095 DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 000000EA DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000494 DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -373,15 +1254,26 @@ BV_MakeCopy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 BV_Pop . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 BV_PushBack  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 BV_Swap  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_CreateObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_DeleteObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_PrintBoard . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_ReadFile . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_SetupBoard . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_SwapDown . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_SwapLeft . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_SwapRight  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-B_SwapUp . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_CreateObj  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000045 Public STDCALL
+B_DeleteObj  . . . . . . . . . .	P Near	 000000AD _TEXT	Length= 0000003F Public STDCALL
+  QUIT . . . . . . . . . . . . .	L Near	 000000E4 _TEXT	
+B_MakeCopy . . . . . . . . . . .	P Near	 00000045 _TEXT	Length= 00000068 Public STDCALL
+B_PrintBoard . . . . . . . . . .	P Near	 0000024E _TEXT	Length= 0000006A Public STDCALL
+  PRINTLOOP  . . . . . . . . . .	L Near	 0000026F _TEXT	
+B_ReadFile . . . . . . . . . . .	P Near	 000002B8 _TEXT	Length= 000000A8 Public STDCALL
+  FILETOBOARDLOOP  . . . . . . .	L Near	 00000332 _TEXT	
+  SHOWERRORMSG . . . . . . . . .	L Near	 00000351 _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 00000356 _TEXT	
+B_SetupBoard . . . . . . . . . .	P Near	 000000EC _TEXT	Length= 0000003F Public STDCALL
+  INITLOOP . . . . . . . . . . .	L Near	 00000107 _TEXT	
+B_SwapDown . . . . . . . . . . .	P Near	 000001BD _TEXT	Length= 0000003C Public STDCALL
+  QUIT . . . . . . . . . . . . .	L Near	 000001F2 _TEXT	
+B_SwapLeft . . . . . . . . . . .	P Near	 000001F9 _TEXT	Length= 00000055 Public STDCALL
+  QUIT . . . . . . . . . . . . .	L Near	 00000246 _TEXT	
+B_SwapRight  . . . . . . . . . .	P Near	 00000167 _TEXT	Length= 00000056 Public STDCALL
+  QUIT . . . . . . . . . . . . .	L Near	 000001B5 _TEXT	
+B_SwapUp . . . . . . . . . . . .	P Near	 0000012B _TEXT	Length= 0000003C Public STDCALL
+  QUIT . . . . . . . . . . . . .	L Near	 00000160 _TEXT	
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -464,8 +1356,6 @@ Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-UTIL_ReadString  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-UTIL_SetColor  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -484,10 +1374,13 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000095 Public STDCALL
-  L1 . . . . . . . . . . . . . .	L Near	 0000000A _TEXT	
-  L2 . . . . . . . . . . . . . .	L Near	 0000005E _TEXT	
-  quit . . . . . . . . . . . . .	L Near	 00000089 _TEXT	
+_B_CalcDistance  . . . . . . . .	P Near	 000003C1 _TEXT	Length= 000000D3 Public STDCALL
+  MATHLOOP . . . . . . . . . . .	L Near	 000003E5 _TEXT	
+_B_FindZeroPos . . . . . . . . .	P Near	 00000360 _TEXT	Length= 00000061 Public STDCALL
+  SEARCHLOOP . . . . . . . . . .	L Near	 0000037A _TEXT	
+  FOUND  . . . . . . . . . . . .	L Near	 00000388 _TEXT	
+  NOTFOUND . . . . . . . . . . .	L Near	 000003A6 _TEXT	
+  QUIT . . . . . . . . . . . . .	L Near	 000003B7 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -497,6 +1390,14 @@ Symbols:
 
                 N a m e                 Type     Value    Attr
 
+??0000 . . . . . . . . . . . . .	Byte	 00000012 _DATA	
+??0001 . . . . . . . . . . . . .	Byte	 0000002A _DATA	
+??0002 . . . . . . . . . . . . .	Byte	 00000047 _DATA	
+??0003 . . . . . . . . . . . . .	Byte	 0000006C _DATA	
+??0004 . . . . . . . . . . . . .	Byte	 0000006F _DATA	
+??0005 . . . . . . . . . . . . .	Byte	 00000088 _DATA	
+??0006 . . . . . . . . . . . . .	Byte	 000000B1 _DATA	
+??0007 . . . . . . . . . . . . .	Byte	 000000C3 _DATA	
 @CodeSize  . . . . . . . . . . .	Number	 00000000h   
 @DataSize  . . . . . . . . . . .	Number	 00000000h   
 @Interface . . . . . . . . . . .	Number	 00000003h   
@@ -507,10 +1408,18 @@ Symbols:
 @fardata . . . . . . . . . . . .	Text   	 FLAT
 @stack . . . . . . . . . . . . .	Text   	 FLAT
 ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+BUFFERSIZE . . . . . . . . . . .	Number	 00000009h   
+BVInstance . . . . . . . . . . .	Text   	 (ByteVector PTR [edx])
+BVIter . . . . . . . . . . . . .	Text   	 esi
+BVPtr  . . . . . . . . . . . . .	Text   	 [ebp - 32]
+BufferIter . . . . . . . . . . .	Text   	 esi
+ByteVectorPtr  . . . . . . . . .	Text   	 [ebp - 4]
 CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
 CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
 CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
 CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CopyBoardPtr . . . . . . . . . .	Text   	 [ebp - 4]
+Counter  . . . . . . . . . . . .	Text   	 eax
 CreateFile . . . . . . . . . . .	Text   	 CreateFileA
 DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
 ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
@@ -549,6 +1458,7 @@ FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h
 FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
 FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
 FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FileHandle . . . . . . . . . . .	Text   	 [ebp - 8]
 FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
 GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
 GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
@@ -561,6 +1471,7 @@ HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h
 HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
 HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
 HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+HeapIter . . . . . . . . . . . .	Text   	 esi
 IDABORT  . . . . . . . . . . . .	Number	 00000003h   
 IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
 IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
@@ -574,12 +1485,13 @@ IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h
 IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
 IDYES  . . . . . . . . . . . . .	Number	 00000006h   
 INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+Instance . . . . . . . . . . . .	Text   	 (Board PTR [ebx])
+Iter . . . . . . . . . . . . . .	Text   	 esi
 KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
 KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
 KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
 LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
 LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
-MAX_STR_LENGTH . . . . . . . . .	Number	 00000064h   
 MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
 MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
 MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
@@ -607,8 +1519,10 @@ MB_YESNO . . . . . . . . . . . .	Number	 00000004h
 MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
 MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
 MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+Mod3 . . . . . . . . . . . . . .	Text   	 [ebp - 8]
 NULL . . . . . . . . . . . . . .	Number	 00000000h   
 NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+NewInstanceAddress . . . . . . .	Text   	 esi
 OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
 OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
 PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
@@ -622,6 +1536,7 @@ SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h
 STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
 STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
 STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SearchIter . . . . . . . . . . .	Text   	 esi
 SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
 TAB  . . . . . . . . . . . . . .	Number	 00000009h   
 TRUE . . . . . . . . . . . . . .	Number	 00000001h   
@@ -704,15 +1619,20 @@ VK_SPACE . . . . . . . . . . . .	Number	 00000020h
 VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
 VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
 VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+ValueIter  . . . . . . . . . . .	Text   	 esi
 WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+atVal  . . . . . . . . . . . . .	Text   	 [ebp - 28]
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
+buffer . . . . . . . . . . . . .	Byte	 00000008 _DATA	
+col1 . . . . . . . . . . . . . .	Text   	 [ebp - 12]
+col2 . . . . . . . . . . . . . .	Text   	 [ebp - 16]
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
-filename . . . . . . . . . . . .	Byte	 0000001B _DATA	
+file_name  . . . . . . . . . . .	Text   	 [ebp + 36]
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
 hHeap  . . . . . . . . . . . . .	DWord	 00000000 _DATA	
@@ -723,10 +1643,23 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
-newHeap  . . . . . . . . . . . .	DWord	 00000008 _DATA	
-pArray . . . . . . . . . . . . .	DWord	 00000004 _DATA	
+mainByteSize . . . . . . . . . .	DWord	 00000004 _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
-str1 . . . . . . . . . . . . . .	Byte	 0000000C _DATA	
+row1 . . . . . . . . . . . . . .	Text   	 [ebp - 4]
+row2 . . . . . . . . . . . . . .	Text   	 [ebp - 8]
+term1  . . . . . . . . . . . . .	Text   	 [ebp - 20]
+term2  . . . . . . . . . . . . .	Text   	 [ebp - 24]
+this_ptr . . . . . . . . . . . .	Text   	 [ebp + 32]
+totalDist  . . . . . . . . . . .	Text   	 [ebp - 36]
+v0 . . . . . . . . . . . . . . .	Text   	 [ebp + 64]
+v1 . . . . . . . . . . . . . . .	Text   	 [ebp + 60]
+v2 . . . . . . . . . . . . . . .	Text   	 [ebp + 56]
+v3 . . . . . . . . . . . . . . .	Text   	 [ebp + 52]
+v4 . . . . . . . . . . . . . . .	Text   	 [ebp + 48]
+v5 . . . . . . . . . . . . . . .	Text   	 [ebp + 44]
+v6 . . . . . . . . . . . . . . .	Text   	 [ebp + 40]
+v7 . . . . . . . . . . . . . . .	Text   	 [ebp + 36]
+v8 . . . . . . . . . . . . . . .	Text   	 [ebp + 32]
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   
