@@ -302,6 +302,47 @@ BV_Pop PROC uses ebx ecx
 	RET 4 ;ONE PARAMETER
 BV_Pop ENDP
 
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+BV_Print PROC uses eax ebx ecx ebp esi
+; Prints the vector as is
+; @param this_ptr - Address of instance
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 28]
+
+  ; Macros
+  Instance EQU (ByteVector PTR [ebx])
+  RootIter EQU esi
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	mov RootIter, Instance.Root
+
+	movzx ecx, Instance.VectorSize
+
+	.IF (ecx == 0)
+	  mWriteLn "Array is empty"
+	  jmp QUIT
+	.ENDIF
+
+	mWrite "| "
+	PRINTLOOP:
+
+	movzx eax, BYTE PTR [RootIter]
+	call WriteDec
+	mWrite " | "
+	inc RootIter
+	loop PRINTLOOP
+
+	QUIT:
+	LEAVE
+	RET 4 ; One Parameter
+BV_Print ENDP
+
+
 ; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -

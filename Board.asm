@@ -538,6 +538,29 @@ B_GetDistance PROC uses ebx ebp
 	RET 4 ; ONE PARAM
 B_GetDistance ENDP
 
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_GetDirLock PROC uses ebx ebp
+; Prints the board object to console
+; @param this_ptr - Pointer to instance
+; @return EAX - Distance member value
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 16] 
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	movzx eax, Instance.DirLock
+
+	LEAVE
+	RET 4 ; ONE PARAM
+B_GetDirLock ENDP
+
+
 
 
 ; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

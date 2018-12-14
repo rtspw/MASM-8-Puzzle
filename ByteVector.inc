@@ -21,6 +21,7 @@ BV_PushBack PROTO
 BV_At PROTO
 BV_Swap PROTO
 BV_Pop PROTO
+BV_Print PROTO
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -

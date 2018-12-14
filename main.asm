@@ -22,6 +22,8 @@ userInput BYTE USER_INPUT_LENGTH+1 DUP (?)
 GameBoardPtr DWORD ?
 numOfMoves DWORD 0
 
+moveVector DWORD ?
+
 .CODE
 
 main PROC
@@ -35,11 +37,17 @@ main PROC
 	call ProcessStartUserInput
 	.IF (eax == 1)
 	  STARTNEWGAME:
+
+		call BV_CreateObj
+		mov moveVector, eax
+
 		mov numOfMoves, 0
 	  call ProcessFilenameInput
 		jmp BOARDCREATED
+
 	.ELSEIF (eax == 2)
 	  jmp quit
+
 	.ENDIF
 
 	BOARDCREATED:
@@ -48,6 +56,17 @@ main PROC
 	GAMELOOP:
 	  call CLRSCR
 
+		inc numOfMoves
+
+		; Add to move vector previous move
+		push GameBoardPtr
+		call B_GetDirLock
+		.IF (eax != 0)
+			push eax
+			push moveVector
+			call BV_PushBack
+		.ENDIF
+
 		; Check for win condition
 		push GameBoardPtr
 		call B_GetDistance
@@ -55,7 +74,10 @@ main PROC
 		  jmp WIN
 		.ENDIF
 
-		inc numOfMoves
+		jmp ENDNONMOVEENTRY
+		NONMOVEENTRY:
+		  call CLRSCR
+		ENDNONMOVEENTRY:
 
 		; Print board representation
 	  push GameBoardPtr
@@ -68,7 +90,16 @@ main PROC
 			jmp STARTNEWGAME
 
 		.ELSEIF (eax == 2)
-			jmp GAMELOOP
+		  call CLRSCR
+			mWriteLn "Your move history: "
+			mWriteLn "-------------------"
+			mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
+			call CRLF
+			push MoveVector
+			call BV_Print
+			call CRLF
+			call WaitMsg
+			jmp NONMOVEENTRY
 
 		.ELSEIF (eax == 3)
 		  push GameBoardPtr
@@ -108,10 +139,27 @@ main PROC
 		call WriteDec
 		call CRLF
 
+		; Print Move vector
+		call CRLF
+		mWriteLn "Up: 1, Right: 2, Down: 3, Left: 4"
+		push moveVector
+		call BV_Print
+		call CRLF
+		call CRLF
+
+		; Deletes board object
+		push GameBoardPtr
+		call B_DeleteObj
+
+		; Delete move vector
+		push moveVector
+		call BV_DeleteObj
+
 		; Restarts to start menu
 		jmp GAMESTART
 
   quit:
+
   EXIT
 main ENDP
 

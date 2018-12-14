@@ -24,6 +24,7 @@ B_SwapDown PROTO
 B_SwapLeft PROTO
 B_PrintBoard PROTO
 B_GetDistance PROTO
+B_GetDirLock PROTO
 
 ; File Methods
 B_ReadFile PROTO
