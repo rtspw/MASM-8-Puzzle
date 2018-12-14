@@ -32,6 +32,7 @@ B_PrintBoard PROTO
 B_PrintMoves PROTO
 B_GetDistance PROTO
 B_GetDirLock PROTO
+B_IsSolvable PROTO
 
 ; File Methods
 B_ReadFile PROTO
@@ -41,6 +42,7 @@ B_ReadFile PROTO
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; _B_FindZeroPos
 ; _B_CalcDistance
+; _B_CalcInversions
 
 ; - - - - - - - - - - - - - - - - - - - - - -  - - -
 ; DirLock Directions

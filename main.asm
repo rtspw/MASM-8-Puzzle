@@ -11,7 +11,6 @@ INCLUDE UtilProcedures.inc
 INCLUDE ByteVector.inc
 INCLUDE Vector.inc
 INCLUDE Board.inc
-INCLUDE Pair.inc
 INCLUDE MinHeap.inc
 
 .DATA
@@ -58,6 +57,11 @@ main PROC
 	push b1
 	call B_SetupBoard
 
+	push eax
+	push b1
+	call B_IsSolvable
+	pop eax
+
 	push b1
 	push testmh
 	call MH_Append
@@ -75,6 +79,12 @@ main PROC
 	push 1
 	push b2
 	call B_SetupBoard
+
+	push eax
+	push b2
+	call B_IsSolvable
+	pop eax
+
 
 	push b2
 	push testmh
@@ -94,6 +104,12 @@ main PROC
 	push b3
 	call B_SetupBoard
 
+	push eax
+	push b3
+	call B_IsSolvable
+	pop eax
+
+
 	push b3
 	push testmh
 	call MH_Append
@@ -102,7 +118,7 @@ main PROC
 	call MH_DeleteObj
 	
 
-	jmp quit
+	;jmp quit
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  ;ALL NON-DEBUG LINES BELOW
@@ -301,6 +317,19 @@ ProcessFilenameInput PROC uses edx
 	; If failed the read file, delete the created object
 	.IF (eax == 0) 
 		call B_DeleteObj
+		jmp INPUTSTART
+	.ENDIF
+
+	pop eax
+	push eax
+
+	; If the board is not solvable, delete and retry
+	push eax
+	call B_IsSolvable
+
+	.IF (eax == 0)
+	  mWrite "This puzzle is not solvable! Try another file."
+		call CRLF
 		jmp INPUTSTART
 	.ENDIF
 	

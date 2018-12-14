@@ -784,7 +784,36 @@ B_GetDirLock PROC uses ebx ebp
 	RET 4 ; ONE PARAM
 B_GetDirLock ENDP
 
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_IsSolvable PROC uses ebx
+; Checks if the board is solvable
+; @param this_ptr - Address to instance
+; @return EAX - 1: solvable, 0: not solvable
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 12] 
 
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+	push this_ptr
+	call _B_CalcInversions
+
+	; True if the inversions are even
+	test eax, 1
+	jnz ISODD
+
+	ISEVEN:
+	  mov eax, 1
+		jmp QUIT
+	ISODD:
+	  mov eax, 0
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAMETER
+B_IsSolvable ENDP
 
 
 ; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1063,4 +1092,76 @@ _B_CalcDistance PROC uses eax ebx ecx edx ebp esi
 	LEAVE
 	RET 4 ; ONE PARAMETER
 _B_CalcDistance ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+_B_CalcInversions PROC uses ebx ecx edx ebp 
+; Calculates and returns the number of inversions
+; This is used to determine whether the board is possible
+; @param this_ptr - Address of instance
+; @return EAX - Number of inversions
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 8, 0 ; 2 LOCALS
+  ; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 24]
+
+	; Locals
+	inversions EQU [ebp - 4]
+	vptr EQU [ebp - 8]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+	mov ebx, this_ptr
+	mov eax, Instance.VectorPtr
+	mov vptr, eax
+
+	mov ecx, 0
+	mov inversions, ecx
+	OUTERLOOP:
+	  mov edx, ecx
+		inc edx
+	  INNERLOOP:
+			
+			; if (vector[ecx] !== 0 and vector[edx] !== 0 and vector[ecx] > vector[edx])
+			; EBX = vector[ecx]
+			push ecx
+			push vptr
+			call BV_At
+			cmp eax, 0
+			je CONTINUEINNER
+			mov ebx, eax
+
+			; EAX = vector[edx]
+			push edx
+			push vptr
+			call BV_At
+			cmp eax, 0
+			je CONTINUEINNER
+
+			.IF (ebx > eax)
+			  mov eax, inversions
+				inc eax
+			  mov inversions, eax
+			.ENDIF
+
+			CONTINUEINNER:
+			inc edx
+			cmp edx, 9
+			jge EXITINNER
+			jmp INNERLOOP
+		EXITINNER:
+
+		inc ecx
+		cmp ecx, 8
+		jge EXITLOOP
+		jmp OUTERLOOP
+	EXITLOOP:
+
+	mov eax, inversions
+
+	LEAVE
+	RET 4 ; One parameter
+_B_CalcInversions ENDP
+
 end
