@@ -9,6 +9,7 @@ INCLUDE Macros.inc
 
 INCLUDE UtilProcedures.inc
 INCLUDE ByteVector.inc
+INCLUDE Vector.inc
 INCLUDE Board.inc
 
 .DATA
@@ -31,6 +32,60 @@ main PROC
   call UTIL_SetColor
 
 	call PrintTitleLogo
+
+	; VECTOR TESTS
+
+	mov ecx, 1000
+
+	TESTLOOP:
+	push ecx
+
+	call V_CreateObj
+
+	mov ecx, 100
+	PUSHLOOP:
+
+	push ecx
+	push eax
+	call V_PushBack
+
+	loop PUSHLOOP
+
+	push 0
+	push 1
+	push eax
+	call V_Swap
+
+	push 3
+	push 99
+	push eax
+	call V_Swap
+
+  push eax
+	call V_Print
+
+	push eax
+	push eax
+	call V_MakeCopy
+	push eax
+	call V_Print
+	push eax
+	call V_DeleteObj
+	pop eax
+
+	push eax
+	call V_DeleteObj
+
+	pop ecx
+	loop TESTLOOP
+
+
+
+	jmp quit
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ ;ALL NON-DEBUG LINES BELOW
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 	GAMESTART:
 	call PrintStartMenu

@@ -4,38 +4,37 @@
 
 INCLUDE Irvine32.inc
 INCLUDE Macros.inc
-INCLUDE ByteVector.inc
+INCLUDE Vector.inc
 
 .DATA
 
   hHeap HANDLE ?
-  mainByteSize DWORD sizeof ByteVector
+  mainByteSize DWORD sizeof Vector
 
 .CODE
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_CreateObj PROC uses ecx edx
-; Allocates 8 Bytes and creates bytevector instance
+V_CreateObj PROC uses ecx edx
+; Allocates 12 Bytes and creates Vector instance
 ; @return EAX - Address of new Vector Instance
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-
   INVOKE GetProcessHeap
   mov hHeap, eax
 
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new Byte Vector at: "
+  mWrite "Creating new DWORD Vector at: "
   call WriteHex
   call CRLF
 
   ; Creates dynamic array for instance's root
   push eax
-  call _BV_Initialize
+  call _V_Initialize
 
-  ret
-BV_CreateObj ENDP
+  RET
+V_CreateObj ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_MakeCopy PROC uses ebx ecx edx ebp esi
+V_MakeCopy PROC uses ebx ecx edx ebp esi
 ; Creates a new vector instance with the same data
 ; @param this_ptr - Pointer to original instance
 ; @returns EAX - Pointer to new instance
@@ -46,7 +45,7 @@ BV_MakeCopy PROC uses ebx ecx edx ebp esi
   this_ptr EQU [ebp + 28]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   Iterator EQU esi
   ; *  *  *  *  *  *  *  *  *
 
@@ -54,36 +53,36 @@ BV_MakeCopy PROC uses ebx ecx edx ebp esi
   mov ebx, this_ptr
 
   ; Sets up counter for looping through elements
-  movzx ecx, Instance.VectorSize
+  mov ecx, Instance.VectorSize
   mov Iterator, Instance.Root
 
   ; Creates new object and stores in EAX
-  call BV_CreateObj
-  mWrite "  Created a copied byte vector object at : "
+  call V_CreateObj
+  mWrite "  Created a copied dword vector object at : "
   call WriteHex
   call CRLF
 
   .IF (ecx == 0)
-    mWriteLn "Error in ByteVector.MakeCopy()! Array is empty."
+    mWriteLn "Error in Vector.MakeCopy()! Array is empty."
 	jmp QUIT
   .ENDIF
 
   COPYLOOP:
-    movzx edx, BYTE PTR [Iterator]
+    mov edx, DWORD PTR [Iterator]
     push edx
-	push eax
-	call BV_PushBack
-	inc Iterator
+	  push eax
+	  call V_PushBack
+	  add Iterator, TYPE DWORD
 	loop COPYLOOP
 
   QUIT:
   LEAVE
   RET 4
 
-BV_MakeCopy ENDP
+V_MakeCopy ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_DeleteObj PROC uses eax ebx ecx ebp
+V_DeleteObj PROC uses eax ebx ecx ebp
 ; Frees the heap for the corresponding handle
 ; @param this_ptr - Pointer to address in heap
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -94,7 +93,7 @@ BV_DeleteObj PROC uses eax ebx ecx ebp
   this_ptr EQU [ebp + 24]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   ; *  *  *  *  *  *  *  *  *
 
   mov ebx, this_ptr
@@ -102,29 +101,29 @@ BV_DeleteObj PROC uses eax ebx ecx ebp
   ; Frees the handle for the vector root
   INVOKE HeapFree, hHeap, 0, Instance.Root
   .IF eax == 0
-    mWriteLn "Failed to free heap for bVector root"
+    mWriteLn "Failed to free heap for Vector root"
 	jmp QUIT
   .ENDIF
 
   INVOKE HeapFree, hHeap, 0, this_ptr
   .IF eax == 0
-    mWriteLn "Failed to free heap for bVector"
+    mWriteLn "Failed to free heap for Vector"
   .ENDIF
 
   QUIT:
   LEAVE
   RET 4
-BV_DeleteObj ENDP
+V_DeleteObj ENDP
 
 
 
 ; MEMBER PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_PushBack PROC uses ebp eax ebx ecx esi
-; Adds a byte to the ByteVector
-; @param this_ptr - Address of byteVector Instance
-; @param val - BYTE to add to bytevector
+V_PushBack PROC uses ebp eax ebx ecx esi
+; Adds a dword to the Vector
+; @param this_ptr - Address of Vector Instance
+; @param val - DWORD to add to vector
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 4, 0
   ; *  *  *  *  *  *  *  *  *
@@ -136,23 +135,24 @@ BV_PushBack PROC uses ebp eax ebx ecx esi
   InsertionOffset EQU [ebp - 4]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   Iterator EQU esi
   ; *  *  *  *  *  *  *  *  *
 
   ; Move 'this' to ebx to use as instance reference
   mov ebx, this_ptr
 
-  ; Calculate insertion offset (Root + Size)
-  movzx eax, Instance.VectorSize
+  ; Calculate insertion offset (Root + Size * 4)
+  mov eax, Instance.VectorSize
+	shl eax, 2
   mov InsertionOffset, eax
 
   ; Insert into instance root array with offset
   mov Iterator, Instance.Root
   add Iterator, InsertionOffset
 
-  mov al, val
-  mov BYTE PTR [Iterator], al
+  mov eax, val
+  mov DWORD PTR [Iterator], eax
 
   ; Update Instance member variables
   inc Instance.VectorSize
@@ -160,21 +160,21 @@ BV_PushBack PROC uses ebp eax ebx ecx esi
   ; Compares Vector Size to Capacity
   ; If they equal, create new dynamic array with expanded capacity
   ; and copy the original contents into it
-  movzx eax, Instance.VectorSize
-  movzx ecx, Instance.VectorCapacity
+  mov eax, Instance.VectorSize
+  mov ecx, Instance.VectorCapacity
 
   .IF (eax == ecx)
     push ebx
-	call _BV_ExpandCapacity
+	  call _V_ExpandCapacity
   .ENDIF
 
   LEAVE
   RET 8
-BV_PushBack ENDP
+V_PushBack ENDP
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_At PROC uses ebx edx ebp esi
+V_At PROC uses ebx edx ebp esi
 ; Returns the value of the element at the index
 ; @param this_ptr - Address of instance
 ; @param index - Index of value to return
@@ -187,27 +187,31 @@ BV_At PROC uses ebx edx ebp esi
   index EQU [ebp + 28]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   IndexAddress EQU esi
   ; *  *  *  *  *  *  *  *  *
 
   ; Set up instance for the bytevector ptr
   mov ebx, this_ptr
 
+	; Index * 4 = offset
+	mov eax, index
+	shl eax, 2
+
   ; Adds offset to IndexAddress 
   mov IndexAddress, Instance.Root
-  add IndexAddress, index
+  add IndexAddress, eax
 
   ; Sets EAX equal to value at index
-  movzx eax, BYTE PTR [IndexAddress]
+  mov eax, DWORD PTR [IndexAddress]
 
   LEAVE
   RET 8
-BV_At ENDP
+V_At ENDP
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_Swap PROC uses eax ebx ecx edx ebp esi
+V_Swap PROC uses eax ebx ecx edx ebp esi
 ; Swap the elements at the two given indicies
 ; @param this_ptr - Address of instance
 ; @param idx1 - Index of first element
@@ -225,7 +229,7 @@ BV_Swap PROC uses eax ebx ecx edx ebp esi
 	val2 EQU [ebp - 8]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   RootAddress EQU esi
   ; *  *  *  *  *  *  *  *  *
 
@@ -235,36 +239,38 @@ BV_Swap PROC uses eax ebx ecx edx ebp esi
 	; Get value at first address
 	push idx1
 	push ebx
-	call BV_At
+	call V_At
 	mov val1, eax
 
 	; Get value at second Address 
 	push idx2
 	push ebx
-	call BV_At
+	call V_At
 	mov val2, eax
 
 	; Set value at idx1 to val2
 	mov eax, RootAddress
 	mov edx, idx1
+	shl edx, 2
 	add eax, edx
-	mov dl, val2
-	mov BYTE PTR [eax], dl
+	mov edx, val2
+	mov DWORD PTR [eax], edx
 
 	; Set value at idx2 to val1
 	mov eax, RootAddress
 	mov edx, idx2
+	shl edx, 2
 	add eax, edx
-	mov dl, val1
-	mov BYTE PTR [eax], dl
+	mov edx, val1
+	mov DWORD PTR [eax], edx
 
 	LEAVE
 	RET 12
-BV_Swap ENDP
+V_Swap ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_Pop PROC uses ebx ecx
-; Removes and returns last element in byte vector
+V_Pop PROC uses ebx ecx
+; Removes and returns last element in vector
 ; @param this_ptr - Address of instance
 ; @return EAX - Value of popped element, 0 if error
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -274,12 +280,12 @@ BV_Pop PROC uses ebx ecx
   this_ptr EQU [ebp + 16]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   RootAddress EQU esi
   ; *  *  *  *  *  *  *  *  *
 
 	mov ebx, this_ptr
-	movzx ecx, Instance.VectorSize
+	mov ecx, Instance.VectorSize
 
 	; Throws if vector is empty
   .IF (ecx == 0)
@@ -292,19 +298,19 @@ BV_Pop PROC uses ebx ecx
 	dec ecx
 	push ecx
 	push this_ptr
-	call BV_At
+	call V_At
 
 	; Pop last element
-	mov Instance.VectorSize, cx
+	mov Instance.VectorSize, ecx
 
 	QUIT:
 	LEAVE
 	RET 4 ;ONE PARAMETER
-BV_Pop ENDP
+V_Pop ENDP
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-BV_Print PROC uses eax ebx ecx ebp esi
+V_Print PROC uses eax ebx ecx ebp esi
 ; Prints the vector as is
 ; @param this_ptr - Address of instance
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -314,14 +320,14 @@ BV_Print PROC uses eax ebx ecx ebp esi
   this_ptr EQU [ebp + 28]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   RootIter EQU esi
   ; *  *  *  *  *  *  *  *  *
 
 	mov ebx, this_ptr
 	mov RootIter, Instance.Root
 
-	movzx ecx, Instance.VectorSize
+	mov ecx, Instance.VectorSize
 
 	.IF (ecx == 0)
 	  mWriteLn "Array is empty"
@@ -331,22 +337,22 @@ BV_Print PROC uses eax ebx ecx ebp esi
 	mWrite "| "
 	PRINTLOOP:
 
-	movzx eax, BYTE PTR [RootIter]
+	mov eax, DWORD PTR [RootIter]
 	call WriteDec
 	mWrite " | "
-	inc RootIter
+	add RootIter, 4
 	loop PRINTLOOP
 
 	QUIT:
 	LEAVE
 	RET 4 ; One Parameter
-BV_Print ENDP
+V_Print ENDP
 
 
 ; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-_BV_Initialize PROC uses eax ebp esi
+_V_Initialize PROC uses eax ebp esi
 ; Puts default values into allocated heap space
 ; Creates a new dynamic array
 ; @param handle_address - Pointer to heap handle
@@ -362,46 +368,46 @@ _BV_Initialize PROC uses eax ebp esi
   HeapAddress EQU esi
   
   ; Constants
-  StartingCapacity EQU 4
+  StartingCapacity EQU 4 * 4 ; Stores 4 DWORDs
   ; *  *  *  *  *  *  *  *  *
 
   ; Initialize iterator esi with the allocated address
-  mov esi, handle_address
+  mov HeapAddress, handle_address
 
   ; Request space for dynamic array of size "capacity"
   ; If successful, store in ByteVector Object
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, StartingCapacity
   .IF eax == NULL
-	  mWriteLn "Failed to allocate vector root heap!"
-	  jmp QUIT
-
+	 ;mWriteLn "Failed to allocate vector root heap!"
+	 ;jmp QUIT
   .ELSE
-    mWrite "  Creating root dynamic array at (4 bytes): "
+
+    mWrite "  Creating root dynamic dword array at (4 * 4 bytes): "
 	  call WriteHex
 	  call CRLF
 
-    mov DWORD PTR [esi], eax
-	  add esi, TYPE DWORD
+    mov DWORD PTR [HeapAddress], eax
+	  add HeapAddress, TYPE DWORD
   .ENDIF
 
   ; Adds Starting Capacity to Object
   ; Note Starting Size is skipped because the 
   ; allocated space is already zeroed
-  add esi, TYPE WORD
-  mov WORD PTR [esi], StartingCapacity
+  add HeapAddress, TYPE DWORD
+  mov DWORD PTR [HeapAddress], 4
 
   QUIT:
   LEAVE
   RET 4
-_BV_Initialize ENDP
+_V_Initialize ENDP
 
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-_BV_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
+_V_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
 ; Creates a new dynamic array with double the capacity
 ; and replace the original root
-; @param this_pointer - Pointer to byte vector instance
+; @param this_pointer - Pointer to vector instance
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 4, 0
   ; *  *  *  *  *  *  *  *  *
@@ -412,7 +418,7 @@ _BV_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
   new_array EQU [ebp - 4]
 
   ; Macros
-  Instance EQU (ByteVector PTR [ebx])
+  Instance EQU (Vector PTR [ebx])
   IterOld EQU esi
   IterNew EQU edi
   ; *  *  *  *  *  *  *  *  *
@@ -423,40 +429,41 @@ _BV_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
   mov IterOld, Instance.Root
 
   ; Double the capacity 
-  mov ax, Instance.VectorCapacity
-  shl ax, 1
-  mov WORD PTR [Instance.VectorCapacity], ax
+  mov eax, Instance.VectorCapacity
+  shl eax, 1
+  mov DWORD PTR [Instance.VectorCapacity], eax 
 
   ; Request space for dynamic array of new capacity
   ; If successful, store as new iterator and local
-  movzx eax, Instance.VectorCapacity
+  mov eax, Instance.VectorCapacity
+  shl eax, 2
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, eax
   .IF eax == NULL
-	mWriteLn "Failed to allocate expanded vector root heap!"
+	  mWriteLn "Failed to allocate expanded vector root heap!"
   	jmp QUIT
   .ELSE
 
     mWrite "  Creating expanded root vector at: "
-	call WriteHex
-	call CRLF
+	  call WriteHex
+	  call CRLF
 
     mov new_array, eax
     mov IterNew, eax
   .ENDIF
 
   ; Use both iterators to copy old array into new array
-  movzx ecx, Instance.VectorSize 
+  mov ecx, Instance.VectorSize 
   COPYLOOP:
-  mov al, BYTE PTR [IterOld]
-  mov BYTE PTR [IterNew], al
-  inc IterOld
-  inc IterNew
+  mov eax, DWORD PTR [IterOld]
+  mov DWORD PTR [IterNew], eax
+  add IterOld, TYPE DWORD
+  add IterNew, TYPE DWORD
   loop COPYLOOP
   
   ; Free the old array
   INVOKE HeapFree, hHeap, 0, Instance.Root
   .IF eax == 0
-    mWriteLn "Failed to free heap for old bVector root during expansion"
+    mWriteLn "Failed to free heap for old Vector root during expansion"
 	jmp QUIT
   .ENDIF
   
@@ -467,6 +474,6 @@ _BV_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
   QUIT:
   LEAVE
   RET 4
-_BV_ExpandCapacity ENDP
+_V_ExpandCapacity ENDP
 
 end
