@@ -170,6 +170,8 @@ MH_Remove PROC uses ebx ecx ebp
 	dec Instance.HeapSize
 
 	; Heapify down
+	push this_ptr
+	call _MH_PercolateDown
 
 	; Reset eax to popped value for return
 	mov eax, popped_val
@@ -263,5 +265,97 @@ _MH_PercolateUp PROC uses eax ebx ecx edx ebp
 	RET 4 ; ONE PARAMETER
 
 _MH_PercolateUp ENDP
+
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+_MH_PercolateDown PROC uses eax ebx ecx ebp
+; Moves down the first element according to minheap rules
+; @param this_ptr - Address to this
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 16, 0 ; FOUR LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 24]
+
+	; Locals
+	index EQU [ebp - 4]
+	child EQU [ebp - 8]
+	compareVal EQU [ebp - 12]
+	vectoraddress EQU [ebp - 16]
+
+	; Macros
+  Instance EQU (MinHeap PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	mov eax, Instance.VectorPtr
+	mov vectoraddress, eax
+
+	; index = 1
+	mov ecx, 1
+	mov index, ecx
+
+	STARTLOOP:
+
+	; child = 0
+	; compareVal = 0
+	mov ecx, 0
+	mov child, ecx
+	mov compareVal, ecx
+
+	; eax = heapSize
+  mov eax, Instance.HeapSize
+
+	; (index * 2 <= heapSize) ?
+	mov ecx, index
+	shl ecx, 1
+	.IF (ecx <= eax)
+	  mov child, ecx
+		push child
+		push vectoraddress
+		call V_At
+		mov compareVal, eax
+	.ENDIF
+
+	inc ecx
+	mov eax, Instance.HeapSize
+	; (index * 2 + 1 <= heapSize && vector[index * 2 + 1] < compareVal)
+	.IF (ecx <= eax)
+
+	  ; eax = vector[index * 2 + 1]
+	  push ecx
+		push vectoraddress
+		call V_At
+
+		; ecx = compareVal
+		mov ecx, compareVal
+
+		.IF (eax < ecx)
+		  mov eax, child
+			inc eax
+		  mov child, eax 
+		.ENDIF
+	.ENDIF
+
+	; Break if childIndex !== 0
+	mov eax, child
+	cmp eax, 0
+	je QUIT
+
+	; Else, swap and reset loop
+	push index
+	push child
+	push vectoraddress
+	call V_Swap
+
+	mov eax, child
+	mov index, eax
+
+	jmp STARTLOOP
+
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAMETER
+_MH_PercolateDown ENDP
 
 end

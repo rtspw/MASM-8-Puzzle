@@ -42,33 +42,38 @@ main PROC
 	push eax
 	call MH_Append
 
+  push 1
+  push eax
+  call MH_Append
+  
+  push 5
+  push eax
+  call MH_Append
+
+	push eax
+	push eax
+	call MH_Remove
+	call WriteDec
+	call CRLF
+	pop eax
+
+	push eax
+	push eax
+	call MH_Remove
+	call WriteDec
+	call CRLF
+	pop eax
+
 	push 1
 	push eax
 	call MH_Append
 
-	push 5
 	push eax
-	call MH_Append
-
-	push 2
 	push eax
-	call MH_Append
-
-	push 1
-	push eax
-	call MH_Append
-
-	push 4
-	push eax
-	call MH_Append
-
-	push 9
-	push eax
-	call MH_Append
-
-	push 7
-	push eax
-	call MH_Append
+	call MH_Remove
+	call WriteDec
+	call CRLF
+	pop eax
 
 	push eax
 	call MH_DeleteObj
