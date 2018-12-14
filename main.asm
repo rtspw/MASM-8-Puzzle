@@ -25,8 +25,6 @@ userInput BYTE USER_INPUT_LENGTH+1 DUP (?)
 GameBoardPtr DWORD ?
 numOfMoves DWORD 0
 
-moveVector DWORD ?
-
 .CODE
 
 main PROC
@@ -35,38 +33,31 @@ main PROC
 
 	call PrintTitleLogo
 
-	mov ecx, 1000
-	TESTLOOP:
-	  call MH_CreateObj
+	call B_CreateObj
+	
+	push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 0
+	push 8
+	push eax
+	call B_SetupBoard
 
-		push 3
-		push eax
-		call MH_Append
+	push eax
+	push eax
+	call B_MakeCopy
+	push eax
+	call B_DeleteObj
+	pop eax
 
-		push 1
-		push eax
-		call MH_Append
+	push eax
+	call B_DeleteObj
 
-		push 5
-		push eax
-		call MH_Append
-
-		push eax
-		push eax
-		call MH_Remove
-		call WriteDec
-		call cRLF
-		pop eax
-
-		push 10
-		push eax
-		call MH_Append
-
-		push eax
-		call MH_DeleteObj
-	loop TESTLOOP
-
-	jmp quit
+	;jmp quit
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  ;ALL NON-DEBUG LINES BELOW
@@ -77,9 +68,6 @@ main PROC
 	call ProcessStartUserInput
 	.IF (eax == 1)
 	  STARTNEWGAME:
-
-		call BV_CreateObj
-		mov moveVector, eax
 
 		mov numOfMoves, 0
 	  call ProcessFilenameInput
@@ -97,15 +85,6 @@ main PROC
 	  call CLRSCR
 
 		inc numOfMoves
-
-		; Add to move vector previous move
-		push GameBoardPtr
-		call B_GetDirLock
-		.IF (eax != 0)
-			push eax
-			push moveVector
-			call BV_PushBack
-		.ENDIF
 
 		; Check for win condition
 		push GameBoardPtr
@@ -135,8 +114,10 @@ main PROC
 			mWriteLn "-------------------"
 			mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
 			call CRLF
-			push MoveVector
-			call BV_Print
+
+			push GameBoardPtr
+			call B_PrintMoves
+
 			call CRLF
 			call WaitMsg
 			jmp NONMOVEENTRY
@@ -182,18 +163,15 @@ main PROC
 		; Print Move vector
 		call CRLF
 		mWriteLn "Up: 1, Right: 2, Down: 3, Left: 4"
-		push moveVector
-		call BV_Print
+
+		push GameBoardPtr
+		call B_PrintMoves
 		call CRLF
 		call CRLF
 
 		; Deletes board object
 		push GameBoardPtr
 		call B_DeleteObj
-
-		; Delete move vector
-		push moveVector
-		call BV_DeleteObj
 
 		; Restarts to start menu
 		jmp GAMESTART

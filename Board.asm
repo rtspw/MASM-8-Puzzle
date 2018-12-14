@@ -12,8 +12,8 @@ INCLUDE Board.inc
 
   hHeap HANDLE ?
 
-	; 8 Bytes (size is 7 bytes)
-  mainByteSize DWORD sizeof Board + 1
+	; 12 Bytes
+  mainByteSize DWORD sizeof Board
 
 	; Max buffer size for read file
 	BUFFERSIZE = 9
@@ -47,7 +47,13 @@ B_CreateObj PROC uses ecx esi edx
   call BV_CreateObj
 	mov DWORD PTR [NewInstanceAddress], eax
 
+	; Creates byteVector for moveVectorPtr member
+	call BV_CreateObj
+	add NewInstanceAddress, 8
+	mov DWORD PTR [NewInstanceAddress], eax
+
 	; Restore original address in eax as return value
+	sub NewInstanceAddress, 8
 	mov eax, NewInstanceAddress
 
 	RET
@@ -105,6 +111,13 @@ B_MakeCopy PROC uses ebx ecx edx ebp esi
 
 	mov al, Instance.Distance
 	mov BYTE PTR [heapIter], al
+	add heapIter, TYPE WORD
+
+	; Creates a copy of the Move Vector 
+	mov BVPtr, Instance.MoveVectorPtr
+	push BVPtr
+	call BV_MakeCopy
+	mov DWORD PTR [heapIter], eax
 
 	; Restores address of new board to return EAX
 	mov eax, CopyBoardPtr
@@ -131,10 +144,14 @@ B_DeleteObj PROC uses eax ebx ecx ebp
 
   mov ebx, this_ptr
 
-	; Deletes byte vector object
+	; Deletes byte vector objects
   push Instance.VectorPtr ; LEGAL?!
 	call BV_DeleteObj
 
+	push Instance.MoveVectorPtr
+	call BV_DeleteObj
+
+	; Deletes main object
   INVOKE HeapFree, hHeap, 0, this_ptr
   .IF eax == 0
     mWriteLn "Failed to free heap for Board Object"
@@ -224,7 +241,6 @@ B_SwapUp PROC uses ebx edx ebp
   Instance EQU (Board PTR [ebx])
   ; *  *  *  *  *  *  *  *  *
 
-	; Get zeropos into edx
 	mov ebx, this_ptr
 	movzx edx, Instance.ZeroPos
 	mov eax, Instance.VectorPtr
@@ -248,6 +264,13 @@ B_SwapUp PROC uses ebx edx ebp
 	; Sets Dirlock for the board to UP
 	mov BYTE PTR [Instance.DirLock], DIR_UP
 
+	; Adds direction to the move vector
+	movzx eax, Instance.DirLock
+	push eax
+	mov eax, Instance.MoveVectorPtr
+	push eax
+	call BV_PushBack
+
 	; Gets new Distance
 	push ebx
 	call _B_CalcDistance
@@ -259,6 +282,38 @@ B_SwapUp PROC uses ebx edx ebp
 	LEAVE
 	RET 4     ; 1 Param
 B_SwapUp ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_TestUp PROC uses ebx edx ebp
+; Tests if it is possible to move up
+; @param this_ptr - Address of instance
+; Return EAX - 1: Able, 2: Not Able
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  ENTER 0, 0  ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 20]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	; Get zeropos into edx
+	mov ebx, this_ptr
+	movzx edx, Instance.ZeroPos
+
+	; Throw if zeropos is in top row
+	.IF (edx < 3)
+	  mov eax, 0
+		jmp QUIT
+	.ENDIF
+
+	mov eax, 1
+
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAM
+B_TestUp ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_SwapRight PROC uses ebx ecx edx ebp
@@ -316,6 +371,13 @@ B_SwapRight PROC uses ebx ecx edx ebp
 	; Sets Dirlock for the board to RIGHT
 	mov BYTE PTR [Instance.DirLock], DIR_RIGHT
 
+	; Adds direction to the move vector
+	movzx eax, Instance.DirLock
+	push eax
+	mov eax, Instance.MoveVectorPtr
+	push eax
+	call BV_PushBack
+
 	; Gets new Distance
 	push ebx
 	call _B_CalcDistance
@@ -327,6 +389,53 @@ B_SwapRight PROC uses ebx ecx edx ebp
 	LEAVE
 	RET 4     ; 1 Param
 B_SwapRight ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_TestRight PROC uses ebx ecx edx ebp
+; Tests if it is possible to move right
+; @param this_ptr - Address of instance
+; Return EAX - 1: Able, 2: Not Able
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  ENTER 4, 0  ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 24]
+
+	; Locals
+	Mod3 EQU [ebp - 4]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	; Get zeropos into edx
+	mov ebx, this_ptr
+	movzx edx, Instance.ZeroPos
+
+	; Gets modulo of zeropos % 3
+	push eax
+	  push edx
+	    mov eax, edx
+	    mov edx, 0
+	    mov ecx, 3
+			div ecx
+			mov Mod3, edx
+	  pop edx
+	pop eax
+
+	; Throw if zeropos is in right column
+	mov ecx, Mod3
+	.IF (ecx == 2)
+	  mov eax, 0
+		jmp QUIT
+	.ENDIF
+
+	mov eax, 1
+
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAM
+B_TestRight ENDP
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -372,6 +481,13 @@ B_SwapDown PROC uses ebx edx ebp
 	; Sets Dirlock for the board to DOWN
 	mov BYTE PTR [Instance.DirLock], DIR_DOWN
 
+	; Adds direction to the move vector
+	movzx eax, Instance.DirLock
+	push eax
+	mov eax, Instance.MoveVectorPtr
+	push eax
+	call BV_PushBack
+
 	; Gets new Distance
 	push ebx
 	call _B_CalcDistance
@@ -384,6 +500,37 @@ B_SwapDown PROC uses ebx edx ebp
 	RET 4     ; 1 Param
 B_SwapDown ENDP
 
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_TestDown PROC uses ebx edx ebp
+; Tests if it is possible to move down
+; @param this_ptr - Address of instance
+; Return EAX - 1: Able, 2: Not Able
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  ENTER 0, 0  ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 20]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	; Get zeropos into edx
+	mov ebx, this_ptr
+	movzx edx, Instance.ZeroPos
+
+	; Throw if zeropos is in top row
+	.IF (edx > 5)
+	  mov eax, 0
+		jmp QUIT
+	.ENDIF
+
+	mov eax, 1
+
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAM
+B_TestDown ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_SwapLeft PROC uses ebx ecx edx ebp
@@ -441,6 +588,13 @@ B_SwapLeft PROC uses ebx ecx edx ebp
 	; Sets Dirlock for the board to LEFT
 	mov BYTE PTR [Instance.DirLock], DIR_LEFT
 
+	; Adds direction to the move vector
+	movzx eax, Instance.DirLock
+	push eax
+	mov eax, Instance.MoveVectorPtr
+	push eax
+	call BV_PushBack
+
 	; Gets new Distance
 	push ebx
 	call _B_CalcDistance
@@ -453,6 +607,52 @@ B_SwapLeft PROC uses ebx ecx edx ebp
 	RET 4     ; 1 Param
 B_SwapLeft ENDP
 
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_TestLeft PROC uses ebx ecx edx ebp
+; Tests if it is possible to move left
+; @param this_ptr - Address of instance
+; Return EAX - 1: Able, 2: Not Able
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  ENTER 4, 0  ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 24]
+
+	; Locals
+	Mod3 EQU [ebp - 4]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	; Get zeropos into edx
+	mov ebx, this_ptr
+	movzx edx, Instance.ZeroPos
+
+	; Gets modulo of zeropos % 3
+	push eax
+	  push edx
+	    mov eax, edx
+	    mov edx, 0
+	    mov ecx, 3
+			div ecx
+			mov Mod3, edx
+	  pop edx
+	pop eax
+
+	; Throw if zeropos is in right column
+	mov ecx, Mod3
+	.IF (ecx == 0)
+	  mov eax, 0
+		jmp QUIT
+	.ENDIF
+
+	mov eax, 1
+
+	QUIT:
+	LEAVE
+	RET 4 ; ONE PARAM
+B_TestLeft ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_PrintBoard PROC uses eax ebx ecx edx ebp esi
@@ -515,6 +715,30 @@ B_PrintBoard PROC uses eax ebx ecx edx ebp esi
 	LEAVE
 	RET 4     ; ONE PARAMETER
 B_PrintBoard ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_PrintMoves PROC uses eax ebx ebp
+; Prints the move vector using the BV_Print method
+; @param this_ptr - Address of instance
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  ENTER 0, 0 ; NO LOCALS
+  ; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 20] ; 3 offset
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+	mov ebx, this_ptr
+	mov eax, Instance.MoveVectorPtr
+
+	push eax
+	call BV_Print
+
+	LEAVE
+	RET 4 ; ONE PARAM
+B_PrintMoves ENDP
+
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 B_GetDistance PROC uses ebx ebp

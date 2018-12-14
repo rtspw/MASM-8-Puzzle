@@ -6,6 +6,8 @@ Board STRUCT
 	ZeroPos BYTE 0
 	DirLock BYTE 0
 	Distance BYTE 0
+	Filler BYTE 0
+	MoveVectorPtr DWORD 0
 Board ENDS
 
 ; - - - - - - - - - - - - - - - - - - - - - -  - - -
@@ -19,10 +21,15 @@ B_SetupBoard PROTO
 
 ; Board Methods
 B_SwapUp PROTO
+B_TestUp PROTO
 B_SwapRight PROTO
+B_TestRight PROTO
 B_SwapDown PROTO
+B_TestDown PROTO
 B_SwapLeft PROTO
+B_TestLeft PROTO
 B_PrintBoard PROTO
+B_PrintMoves PROTO
 B_GetDistance PROTO
 B_GetDirLock PROTO
 
