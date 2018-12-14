@@ -11,6 +11,7 @@ INCLUDE UtilProcedures.inc
 INCLUDE ByteVector.inc
 INCLUDE Vector.inc
 INCLUDE Board.inc
+INCLUDE Pair.inc
 
 .DATA
 
@@ -33,53 +34,23 @@ main PROC
 
 	call PrintTitleLogo
 
-	; VECTOR TESTS
-
 	mov ecx, 1000
-
 	TESTLOOP:
-	push ecx
-
-	call V_CreateObj
-
-	mov ecx, 100
-	PUSHLOOP:
-
-	push ecx
-	push eax
-	call V_PushBack
-
-	loop PUSHLOOP
-
-	push 0
-	push 1
-	push eax
-	call V_Swap
-
-	push 3
-	push 99
-	push eax
-	call V_Swap
-
-  push eax
-	call V_Print
+	push 12345678
+	push 98765432
+	call P_CreateObj
 
 	push eax
 	push eax
-	call V_MakeCopy
-	push eax
-	call V_Print
-	push eax
-	call V_DeleteObj
+	call P_Second
+	call writeHex
+	call CRLF
 	pop eax
 
 	push eax
-	call V_DeleteObj
+	call P_DeleteObj
 
-	pop ecx
 	loop TESTLOOP
-
-
 
 	jmp quit
 
