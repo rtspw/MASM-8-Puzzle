@@ -12,6 +12,7 @@ INCLUDE ByteVector.inc
 INCLUDE Vector.inc
 INCLUDE Board.inc
 INCLUDE Pair.inc
+INCLUDE MinHeap.inc
 
 .DATA
 
@@ -36,20 +37,33 @@ main PROC
 
 	mov ecx, 1000
 	TESTLOOP:
-	push 12345678
-	push 98765432
-	call P_CreateObj
+	  call MH_CreateObj
 
-	push eax
-	push eax
-	call P_Second
-	call writeHex
-	call CRLF
-	pop eax
+		push 3
+		push eax
+		call MH_Append
 
-	push eax
-	call P_DeleteObj
+		push 1
+		push eax
+		call MH_Append
 
+		push 5
+		push eax
+		call MH_Append
+
+		push eax
+		push eax
+		call MH_Remove
+		call WriteDec
+		call cRLF
+		pop eax
+
+		push 10
+		push eax
+		call MH_Append
+
+		push eax
+		call MH_DeleteObj
 	loop TESTLOOP
 
 	jmp quit

@@ -349,7 +349,35 @@ V_Print PROC uses eax ebx ecx ebp esi
 V_Print ENDP
 
 
-; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+; Accessor Methods - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+V_GetSize PROC uses ebx ebp
+; Gets vector size in eax
+; @param this_ptr - Pointer to instance
+; @return EAX - Distance member value
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 16] 
+
+  ; Macros
+  Instance EQU (Vector PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	mov eax, Instance.VectorSize
+
+	LEAVE
+	RET 4 ; ONE PARAM
+V_GetSize ENDP
+
+
+
+; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 _V_Initialize PROC uses eax ebp esi

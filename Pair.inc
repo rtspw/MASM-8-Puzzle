@@ -12,13 +12,17 @@ Pair ENDS
 ; - - - - - - - - - - - - - - - - - - - - - -  - - -
 ; Procedure Prototypes
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; Pair Instances
-P_CreateObj PROTO
-P_DeleteObj PROTO
+; MinHeap Instances
+BV_CreateObj PROTO
+BV_MakeCopy PROTO
+BV_DeleteObj PROTO
 
-; Pair Methods
-P_First PROTO
-P_Second PROTO
+; MinHeap Methods
+BV_PushBack PROTO
+BV_At PROTO
+BV_Swap PROTO
+BV_Pop PROTO
+BV_Print PROTO
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Dependencies

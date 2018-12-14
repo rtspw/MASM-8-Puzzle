@@ -1,32 +1,25 @@
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Structure Definitions
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-Vector STRUCT
-  Root DWORD ?
-  VectorSize DWORD 0
-  VectorCapacity DWORD 4
-Vector ENDS
+MinHeap STRUCT
+  VectorPtr DWORD ?
+	HeapSize DWORD 0
+MinHeap ENDS
 
 ; - - - - - - - - - - - - - - - - - - - - - -  - - -
 ; Procedure Prototypes
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; Vector Instances
-V_CreateObj PROTO
-V_MakeCopy PROTO
-V_DeleteObj PROTO
+; MinHeap Instances
+MH_CreateObj PROTO
+MH_DeleteObj PROTO
 
-; Vector Methods
-V_PushBack PROTO
-V_At PROTO
-V_Swap PROTO
-V_Pop PROTO
-V_Print PROTO
-
-; Accessor Methods
-V_GetSize PROTO
+; MinHeap Methods
+MH_Append PROTO
+MH_Remove PROTO
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; Private Procedures
+; Dependencies
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; _V_Initialize
-; _V_IncreaseCapacity
+; Irvine32.inc
+; Macros.inc
+; Vector.inc
