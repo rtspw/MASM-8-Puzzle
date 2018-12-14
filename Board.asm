@@ -7,6 +7,7 @@ INCLUDE Macros.inc
 INCLUDE ByteVector.inc
 
 INCLUDE Board.inc
+INCLUDE MinHeap.inc
 
 .DATA
 
@@ -287,7 +288,7 @@ B_SwapUp ENDP
 B_TestUp PROC uses ebx edx ebp
 ; Tests if it is possible to move up
 ; @param this_ptr - Address of instance
-; Return EAX - 1: Able, 2: Not Able
+; Return EAX - 1: Able, 0: Not Able
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 0, 0  ; NO LOCALS
 	; *  *  *  *  *  *  *  *  *
@@ -394,7 +395,7 @@ B_SwapRight ENDP
 B_TestRight PROC uses ebx ecx edx ebp
 ; Tests if it is possible to move right
 ; @param this_ptr - Address of instance
-; Return EAX - 1: Able, 2: Not Able
+; Return EAX - 1: Able, 0: Not Able
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 4, 0  ; NO LOCALS
 	; *  *  *  *  *  *  *  *  *
@@ -504,7 +505,7 @@ B_SwapDown ENDP
 B_TestDown PROC uses ebx edx ebp
 ; Tests if it is possible to move down
 ; @param this_ptr - Address of instance
-; Return EAX - 1: Able, 2: Not Able
+; Return EAX - 1: Able, 0: Not Able
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 0, 0  ; NO LOCALS
 	; *  *  *  *  *  *  *  *  *
@@ -611,7 +612,7 @@ B_SwapLeft ENDP
 B_TestLeft PROC uses ebx ecx edx ebp
 ; Tests if it is possible to move left
 ; @param this_ptr - Address of instance
-; Return EAX - 1: Able, 2: Not Able
+; Return EAX - 1: Able, 0: Not Able
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
   ENTER 4, 0  ; NO LOCALS
 	; *  *  *  *  *  *  *  *  *
@@ -814,6 +815,153 @@ B_IsSolvable PROC uses ebx
 	LEAVE
 	RET 4 ; ONE PARAMETER
 B_IsSolvable ENDP
+
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_GenerateChildren PROC uses eax ebx ecx edx ebp
+; Generates all possible children (possible swaps)
+; by creating copies of the boards and
+; appends it to a heap object
+; @param this_ptr - Address of instance
+; @param mh_ptr - Address of minheap instance
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 28] 
+	mh_ptr EQU [ebp + 32]
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+	
+	mov ebx, this_ptr
+
+	; Skip up child if not possible or previous location
+	push this_ptr
+	call B_TestUp
+
+	.IF (eax == 0)
+	  jmp MAKERIGHT
+	.ENDIF
+
+	movzx eax, Instance.DirLock
+	.IF (eax == DIR_DOWN)
+	  jmp MAKERIGHT
+	.ENDIF
+
+	; Makes a copy of the board and swaps up
+  push this_ptr
+	call B_MakeCopy
+
+	push eax
+	push eax
+	call B_SwapUp
+	pop eax
+
+	; Adds board copy into pointer
+	push eax
+	push mh_ptr
+	call MH_Append
+
+
+
+	MAKERIGHT:
+
+	push this_ptr
+	call B_TestRight
+
+	.IF (eax == 0)
+	  jmp MAKEDOWN
+	.ENDIF
+
+	movzx eax, Instance.DirLock
+	.IF (eax == DIR_LEFT)
+	  jmp MAKERIGHT
+	.ENDIF
+
+	; Makes a copy of the board and swaps right
+  push this_ptr
+	call B_MakeCopy
+
+	push eax
+	push eax
+	call B_SwapRight
+	pop eax
+
+	; Adds board copy into pointer
+	push eax
+	push mh_ptr
+	call MH_Append
+
+
+
+	MAKEDOWN:
+
+	push this_ptr
+	call B_TestDown
+
+	.IF (eax == 0)
+	  jmp MAKELEFT
+	.ENDIF
+
+	movzx eax, Instance.DirLock
+	.IF (eax == DIR_UP)
+	  jmp MAKELEFT
+	.ENDIF
+
+  ; Makes a copy of the board and swaps down
+  push this_ptr
+	call B_MakeCopy
+
+	push eax
+	push eax
+	call B_SwapDown
+	pop eax
+
+	; Adds board copy into pointer
+	push eax
+	push mh_ptr
+	call MH_Append
+
+
+
+	MAKELEFT:
+
+	push this_ptr
+	call B_TestLeft
+
+	.IF (eax == 0)
+	  jmp QUIT
+	.ENDIF
+
+	movzx eax, Instance.DirLock
+	.IF (eax == DIR_RIGHT)
+	  jmp QUIT
+	.ENDIF
+
+	; Makes a copy of the board and swaps left
+  push this_ptr
+	call B_MakeCopy
+
+	push eax
+	push eax
+	call B_SwapLeft
+	pop eax
+
+	; Adds board copy into pointer
+	push eax
+	push mh_ptr
+	call MH_Append
+
+
+	QUIT:
+	LEAVE
+	RET 8 ; TWO PARAMETERS
+
+B_GenerateChildren ENDP
+
+
 
 
 ; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

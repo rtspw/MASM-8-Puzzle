@@ -25,9 +25,7 @@ GameBoardPtr DWORD ?
 numOfMoves DWORD 0
 
 testmh dword ?
-b1 dword ?
-b2 dword ?
-b3 dword ?
+testb dword ?
 
 .CODE
 
@@ -37,91 +35,51 @@ main PROC
 
 	call PrintTitleLogo
 
-	mov ecx, 1000
+	call PrintMetaMenu
+	call ProcessMetaUserInput
 
-	TESTLOOP:
-	call MH_CreateObj
-	mov testmh, eax
-	
-	call B_CreateObj
-	mov b1, eax
-  push 1
-	push 2
-	push 3
-	push 0
-	push 5
-	push 6
-	push 7
-	push 4
-	push 8
-	push b1
-	call B_SetupBoard
-
-	push eax
-	push b1
-	call B_IsSolvable
-	pop eax
-
-	push b1
-	push testmh
-	call MH_Append
-
-	call B_CreateObj
-	mov b2, eax
-  push 0
-	push 2
-	push 3
-	push 4
-	push 5
-	push 6
-	push 7
-	push 8
-	push 1
-	push b2
-	call B_SetupBoard
-
-	push eax
-	push b2
-	call B_IsSolvable
-	pop eax
-
-
-	push b2
-	push testmh
-	call MH_Append
-
-	call B_CreateObj
-	mov b3, eax
-  push 1
-	push 2
-	push 3
-	push 4
-	push 5
-	push 6
-	push 7
-	push 8
-	push 0
-	push b3
-	call B_SetupBoard
-
-	push eax
-	push b3
-	call B_IsSolvable
-	pop eax
-
-
-	push b3
-	push testmh
-	call MH_Append
-
-	push testmh
-	call MH_DeleteObj
-	
-
-	;jmp quit
+	.IF (eax == 1)
+	  jmp ALGSTART
+	.ELSEIF (eax == 2)
+	  jmp GAMESTART
+	.ENDIF
+	jmp GAMESTART
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
- ;ALL NON-DEBUG LINES BELOW
+; PATHFINDING
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	ALGSTART:
+
+	mov ecx, 100
+	TESTLOOP:
+
+	call MH_CreateObj
+	mov testmh, eax
+
+	call B_CreateObj
+	mov testb, eax
+	push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	push 0
+	push testb
+	call B_SetupBoard
+
+	push testmh
+	push testb
+	call B_GenerateChildren
+
+	loop TESTLOOP
+
+	jmp quit
+
+; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ ;ALL GAME LINES BELOW
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 	GAMESTART:
@@ -249,6 +207,47 @@ PrintTitleLogo PROC
 	mWriteLn "----------------------------------"
 	RET
 PrintTitleLogo ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+PrintMetaMenu PROC
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+  mWriteLn "a) Solve a puzzle with the computer (C)"
+	mWriteLn "b) Solve a puzzle yourself (Y)"
+	RET
+PrintMetaMenu ENDP
+
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+ProcessMetaUserInput PROC uses edx
+; @returns EAX - 1: C, 2: Y
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  INPUTSTART:
+	mov edx, OFFSET userInput
+	push USER_INPUT_LENGTH
+	push edx
+	call UTIL_ReadString
+
+	; Moves user input to eax
+	; Moves to uppercase if lowercase input
+	movzx eax, BYTE PTR [edx]
+	.IF (eax >= 91)
+	  sub eax, 32
+	.ENDIF
+
+	.IF (eax == 67) ; C
+	  mov eax, 1
+		jmp QUIT
+	.ELSEIF (eax == 89) ; Y
+	  mov eax, 2
+	  jmp QUIT
+	.ELSE
+	  mWriteLn "Invalid Input! Try again: "
+		jmp INPUTSTART
+	.ENDIF
+
+	QUIT:
+	RET
+ProcessMetaUserInput ENDP
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 PrintStartMenu PROC

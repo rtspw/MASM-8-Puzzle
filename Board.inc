@@ -34,6 +34,8 @@ B_GetDistance PROTO
 B_GetDirLock PROTO
 B_IsSolvable PROTO
 
+B_GenerateChildren PROTO
+
 ; File Methods
 B_ReadFile PROTO
 
