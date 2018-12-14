@@ -2,7 +2,6 @@ INCLUDE Irvine32.inc
 
 .DATA
   LightBlueOnWhite DWORD lightBlue + (white * 16)
-	MAX_STR_LENGTH = 100
 
 .CODE
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -21,14 +20,16 @@ UTIL_ReadString PROC uses eax ecx edx ebp
 	ENTER 0, 0 
 	; * * * * * * * * *
   StrOffset EQU [ebp + 24]
+	MaxLength EQU [ebp + 28]
 	; * * * * * * * * * 
 
 	mov edx, StrOffset
-	mov ecx, MAX_STR_LENGTH
+	mov ecx, MaxLength
+	inc ecx
 	call ReadString
 
 	LEAVE
-	RET 4
+	RET 8
 UTIL_ReadString ENDP
 
 END

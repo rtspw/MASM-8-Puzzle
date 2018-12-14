@@ -33,6 +33,13 @@ B_ReadFile PROTO
 ; _B_FindZeroPos
 ; _B_CalcDistance
 
+; - - - - - - - - - - - - - - - - - - - - - -  - - -
+; DirLock Directions
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+DIR_UP = 1
+DIR_RIGHT = 2
+DIR_DOWN = 3
+DIR_LEFT = 4
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Dependencies

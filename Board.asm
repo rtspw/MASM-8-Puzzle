@@ -240,10 +240,17 @@ B_SwapUp PROC uses ebx edx ebp
 	; then updates zeropos location
 	push edx
 	sub edx, 3
-	mov WORD PTR [Instance.ZeroPos], dx
+	mov BYTE PTR [Instance.ZeroPos], dl
 	push edx
 	push BVPtr
 	call BV_Swap
+
+	; Sets Dirlock for the board to UP
+	mov BYTE PTR [Instance.DirLock], DIR_UP
+
+	; Gets new Distance
+	push ebx
+	call _B_CalcDistance
 
 	; Sets eax as success
 	mov eax, 1
@@ -301,10 +308,17 @@ B_SwapRight PROC uses ebx ecx edx ebp
 	; then updates zeropos location
 	push edx
 	add edx, 1
-	mov WORD PTR [Instance.ZeroPos], dx
+	mov BYTE PTR [Instance.ZeroPos], dl
 	push edx
 	push BVPtr
 	call BV_Swap
+
+	; Sets Dirlock for the board to RIGHT
+	mov BYTE PTR [Instance.DirLock], DIR_RIGHT
+
+	; Gets new Distance
+	push ebx
+	call _B_CalcDistance
 
 	; Sets eax as success
 	mov eax, 1
@@ -350,10 +364,17 @@ B_SwapDown PROC uses ebx edx ebp
 	; then updates zeropos location
 	push edx
 	add edx, 3
-	mov WORD PTR [Instance.ZeroPos], dx
+	mov BYTE PTR [Instance.ZeroPos], dl
 	push edx
 	push BVPtr
 	call BV_Swap
+
+	; Sets Dirlock for the board to DOWN
+	mov BYTE PTR [Instance.DirLock], DIR_DOWN
+
+	; Gets new Distance
+	push ebx
+	call _B_CalcDistance
 
 	; Sets eax as success
 	mov eax, 1
@@ -412,10 +433,17 @@ B_SwapLeft PROC uses ebx ecx edx ebp
 	; then updates zeropos location
 	push edx
 	sub edx, 1
-	mov WORD PTR [Instance.ZeroPos], dx
+	mov BYTE PTR [Instance.ZeroPos], dl
 	push edx
 	push BVPtr
 	call BV_Swap
+
+	; Sets Dirlock for the board to LEFT
+	mov BYTE PTR [Instance.DirLock], DIR_LEFT
+
+	; Gets new Distance
+	push ebx
+	call _B_CalcDistance
 
 	; Sets eax as success
 	mov eax, 1
@@ -456,6 +484,8 @@ B_PrintBoard PROC uses eax ebx ecx edx ebp esi
 	; Iterate through bytevector
 	mov ecx, 9
 
+	mWrite "  "
+
 	PRINTLOOP:
 	push BVIter
 	push BVPtr
@@ -474,6 +504,7 @@ B_PrintBoard PROC uses eax ebx ecx edx ebp esi
 	.IF (edx == 2)
 	  call CRLF
 		call CRLF
+		mWrite "  "
 	.ENDIF
 
 	inc BVIter
@@ -490,17 +521,18 @@ B_PrintBoard ENDP
 ; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-B_ReadFile PROC uses eax ebx ecx edx ebp esi
+B_ReadFile PROC uses ebx ecx edx ebp esi
 ; Reads a board from a file and appends it to a Board object
 ; Note: The board object should have an empty byte vector!
 ; @param this_ptr - Address of instance
 ; @param file_name - Name of file to open (the offset)
+; @return EAX - 1: Success, 0: Failed
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 	ENTER 8, 0 ; TWO LOCAL
 	; *  *  *  *  *  *  *  *  *
   ; Parameters
-  this_ptr EQU [ebp + 32]
-	file_name EQU [ebp + 36]
+  this_ptr EQU [ebp + 28]
+	file_name EQU [ebp + 32]
 
 	; Locals
 	ByteVectorPtr EQU [ebp - 4]
@@ -523,6 +555,7 @@ B_ReadFile PROC uses eax ebx ecx edx ebp esi
 
 	.IF (eax == INVALID_HANDLE_VALUE)
 	  mWriteLn "Error in B_ReadFile! Failed to open file"
+		mov eax, 0 ; Failed return
 		jmp QUIT
 	.ENDIF
 
@@ -567,6 +600,9 @@ B_ReadFile PROC uses eax ebx ecx edx ebp esi
 	jmp QUIT
 	SHOWERRORMSG:
 	  call WriteWindowsMsg
+
+	; Set success return value
+	mov eax, 1
 
 	QUIT:
 	LEAVE
@@ -749,6 +785,7 @@ _B_CalcDistance PROC uses eax ebx ecx edx ebp esi
 	jnz MATHLOOP
 
 	mov eax, totalDist
+	mWrite "  Distance calculated: "
 	call WriteDec
 	call CRLF
 	mov ebx, this_ptr
