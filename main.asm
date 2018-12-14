@@ -75,33 +75,37 @@ main PROC
 	; - - - - - - - - - - - - - - - - - - - - - - -
 
 
-	mWrite "Name of file to open? : "
-	mov edx, OFFSET filename
-	push edx
-	call UTIL_ReadString
-	call CRLF
+	;mWrite "Name of file to open? : "
+	;mov edx, OFFSET filename
+	;push edx
+	;call UTIL_ReadString
+	;call CRLF
 
 	; BOARD TESTS - - - - - - - - - - - - - - - - - 
-	mov ecx, 1
+	mov ecx, 1000
 	L2:
 	call B_CreateObj
 
-	;push 1
-	;push 2
-	;push 3
-	;push 4
-	;push 5
-	;push 6
-	;push 7
-	;push 8
-	;push 0
-	;push eax
- 	;call B_SetupBoard
-
-	mov edx, OFFSET filename
-	push edx
+	push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	push 0
 	push eax
-	call B_ReadFile
+ 	call B_SetupBoard
+
+	push eax
+	call B_PrintBoard
+
+
+	;mov edx, OFFSET filename
+	;push edx
+	;push eax
+	;call B_ReadFile
 
 	push eax
 	call B_DeleteObj

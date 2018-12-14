@@ -1,4 +1,4 @@
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 14:20:50
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 16:50:53
 main.asm						     Page 1 - 1
 
 
@@ -99,6 +99,11 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 			      C B_SetupBoard PROTO
 			      C 
 			      C ; Board Methods
+			      C B_SwapUp PROTO
+			      C B_SwapRight PROTO
+			      C B_SwapDown PROTO
+			      C B_SwapLeft PROTO
+			      C B_PrintBoard PROTO
 			      C 
 			      C ; File Methods
 			      C B_ReadFile PROTO
@@ -106,7 +111,8 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
 			      C ; Private Procedures
 			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
-			      C ; 
+			      C ; _B_FindZeroPos
+			      C ; _B_CalcDistance
 			      C 
 			      C 
 			      C ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -187,58 +193,51 @@ c:\Irvine\SmallWin.inc(11) : warning A4011:multiple .MODEL directives found : .M
 					; - - - - - - - - - - - - - - - - - - - - - - -
 
 
-					mWrite "Name of file to open? : "
- 00000080		     1		.data		
- 00000080 4E 61 6D 65 20     1		??0000 BYTE "Name of file to open? : ",0	
-	   6F 66 20 66 69
-	   6C 65 20 74 6F
-	   20 6F 70 65 6E
-	   3F 20 3A 20 00
- 00000059		     1		.code
- 00000059  52		     1		push	edx
- 0000005A  BA 00000080 R     1		mov	edx,OFFSET ??0000
- 0000005F  E8 00000000 E     1		call	WriteString
- 00000064  5A		     1		pop	edx
- 00000065  BA 0000001B R		mov edx, OFFSET filename
- 0000006A  52				push edx
- 0000006B  E8 00000000 E		call UTIL_ReadString
- 00000070  E8 00000000 E		call CRLF
+					;mWrite "Name of file to open? : "
+					;mov edx, OFFSET filename
+					;push edx
+					;call UTIL_ReadString
+					;call CRLF
 
 					; BOARD TESTS - - - - - - - - - - - - - - - - - 
- 00000075  B9 00000001			mov ecx, 1
- 0000007A				L2:
- 0000007A  E8 00000000 E		call B_CreateObj
+ 00000059  B9 000003E8			mov ecx, 1000
+ 0000005E				L2:
+ 0000005E  E8 00000000 E		call B_CreateObj
 
-					;push 1
-					;push 2
-					;push 3
-					;push 4
-					;push 5
-					;push 6
-					;push 7
-					;push 8
-					;push 0
+ 00000063  6A 01			push 1
+ 00000065  6A 02			push 2
+ 00000067  6A 03			push 3
+ 00000069  6A 04			push 4
+ 0000006B  6A 05			push 5
+ 0000006D  6A 06			push 6
+ 0000006F  6A 07			push 7
+ 00000071  6A 08			push 8
+ 00000073  6A 00			push 0
+ 00000075  50				push eax
+ 00000076  E8 00000000 E	 	call B_SetupBoard
+
+ 0000007B  50				push eax
+ 0000007C  E8 00000000 E		call B_PrintBoard
+
+
+					;mov edx, OFFSET filename
+					;push edx
 					;push eax
-				 	;call B_SetupBoard
+					;call B_ReadFile
 
- 0000007F  BA 0000001B R		mov edx, OFFSET filename
- 00000084  52				push edx
- 00000085  50				push eax
- 00000086  E8 00000000 E		call B_ReadFile
-
- 0000008B  50				push eax
- 0000008C  E8 00000000 E		call B_DeleteObj
- 00000091  E2 E7			loop L2
+ 00000081  50				push eax
+ 00000082  E8 00000000 E		call B_DeleteObj
+ 00000087  E2 D5			loop L2
 					; - - - - - - - - - - - - - - - - - - - - - - -
 
- 00000093			  quit:
- 00000093  E8 00000000 E	  call WaitMsg
+ 00000089			  quit:
+ 00000089  E8 00000000 E	  call WaitMsg
 				  EXIT
- 00000098  6A 00	   *	    push   +000000000h
- 0000009A  E8 00000000 E   *	    call   ExitProcess
- 0000009F			main ENDP
+ 0000008E  6A 00	   *	    push   +000000000h
+ 00000090  E8 00000000 E   *	    call   ExitProcess
+ 00000095			main ENDP
 				END main
-Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 14:20:50
+Microsoft (R) Macro Assembler Version 14.16.27025.1	    12/13/18 16:50:53
 main.asm						     Symbols 2 - 1
 
 
@@ -359,8 +358,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 00000099 DWord	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 0000009F DWord	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000080 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000095 DWord	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -376,8 +375,13 @@ BV_PushBack  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 BV_Swap  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 B_CreateObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 B_DeleteObj  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_PrintBoard . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 B_ReadFile . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 B_SetupBoard . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_SwapDown . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_SwapLeft . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_SwapRight  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+B_SwapUp . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
@@ -480,10 +484,10 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000009F Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000095 Public STDCALL
   L1 . . . . . . . . . . . . . .	L Near	 0000000A _TEXT	
-  L2 . . . . . . . . . . . . . .	L Near	 0000007A _TEXT	
-  quit . . . . . . . . . . . . .	L Near	 00000093 _TEXT	
+  L2 . . . . . . . . . . . . . .	L Near	 0000005E _TEXT	
+  quit . . . . . . . . . . . . .	L Near	 00000089 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
@@ -493,7 +497,6 @@ Symbols:
 
                 N a m e                 Type     Value    Attr
 
-??0000 . . . . . . . . . . . . .	Byte	 00000080 _DATA	
 @CodeSize  . . . . . . . . . . .	Number	 00000000h   
 @DataSize  . . . . . . . . . . .	Number	 00000000h   
 @Interface . . . . . . . . . . .	Number	 00000003h   

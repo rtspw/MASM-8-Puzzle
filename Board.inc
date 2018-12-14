@@ -18,6 +18,11 @@ B_DeleteObj PROTO
 B_SetupBoard PROTO
 
 ; Board Methods
+B_SwapUp PROTO
+B_SwapRight PROTO
+B_SwapDown PROTO
+B_SwapLeft PROTO
+B_PrintBoard PROTO
 
 ; File Methods
 B_ReadFile PROTO
@@ -25,7 +30,8 @@ B_ReadFile PROTO
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Private Procedures
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; 
+; _B_FindZeroPos
+; _B_CalcDistance
 
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
