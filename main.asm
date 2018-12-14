@@ -25,6 +25,11 @@ userInput BYTE USER_INPUT_LENGTH+1 DUP (?)
 GameBoardPtr DWORD ?
 numOfMoves DWORD 0
 
+testmh dword ?
+b1 dword ?
+b2 dword ?
+b3 dword ?
+
 .CODE
 
 main PROC
@@ -37,47 +42,65 @@ main PROC
 
 	TESTLOOP:
 	call MH_CreateObj
-
-	push 3
-	push eax
-	call MH_Append
-
+	mov testmh, eax
+	
+	call B_CreateObj
+	mov b1, eax
   push 1
-  push eax
-  call MH_Append
-  
-  push 5
-  push eax
-  call MH_Append
+	push 2
+	push 3
+	push 0
+	push 5
+	push 6
+	push 7
+	push 4
+	push 8
+	push b1
+	call B_SetupBoard
 
-	push eax
-	push eax
-	call MH_Remove
-	call WriteDec
-	call CRLF
-	pop eax
-
-	push eax
-	push eax
-	call MH_Remove
-	call WriteDec
-	call CRLF
-	pop eax
-
-	push 1
-	push eax
+	push b1
+	push testmh
 	call MH_Append
 
-	push eax
-	push eax
-	call MH_Remove
-	call WriteDec
-	call CRLF
-	pop eax
+	call B_CreateObj
+	mov b2, eax
+  push 0
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	push 1
+	push b2
+	call B_SetupBoard
 
-	push eax
+	push b2
+	push testmh
+	call MH_Append
+
+	call B_CreateObj
+	mov b3, eax
+  push 1
+	push 2
+	push 3
+	push 4
+	push 5
+	push 6
+	push 7
+	push 8
+	push 0
+	push b3
+	call B_SetupBoard
+
+	push b3
+	push testmh
+	call MH_Append
+
+	push testmh
 	call MH_DeleteObj
-	loop TESTLOOP
+	
 
 	jmp quit
 

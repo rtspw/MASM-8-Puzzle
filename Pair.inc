@@ -1,6 +1,8 @@
 ; Pair acts as a simple dynamically allocated
 ; container for a board and vector objects
 
+; NOTE THAT THIS CLASS IS DEPRECATED !!!- - - - - - - -
+
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Structure Definitions
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -12,17 +14,13 @@ Pair ENDS
 ; - - - - - - - - - - - - - - - - - - - - - -  - - -
 ; Procedure Prototypes
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-; MinHeap Instances
-BV_CreateObj PROTO
-BV_MakeCopy PROTO
-BV_DeleteObj PROTO
+; Instance methods
+P_CreateObj PROTO
+P_DeleteObj PROTO
 
-; MinHeap Methods
-BV_PushBack PROTO
-BV_At PROTO
-BV_Swap PROTO
-BV_Pop PROTO
-BV_Print PROTO
+; Object methods
+P_First PROTO
+P_Second PROTO
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Dependencies

@@ -184,7 +184,7 @@ MH_Remove ENDP
 
 ; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
-_MH_PercolateUp PROC uses eax ebx ecx edx ebp 
+_MH_PercolateUp PROC uses eax ebx ecx edx ebp esi
 ; Moves the newly appended element up the tree
 ; according to minimum heap rules
 ; Uses the distance as the value weight
@@ -193,7 +193,7 @@ _MH_PercolateUp PROC uses eax ebx ecx edx ebp
 	ENTER 8, 0 ; TWO LOCALS
 	; *  *  *  *  *  *  *  *  *
   ; Parameters
-  this_ptr EQU [ebp + 28]
+  this_ptr EQU [ebp + 32]
 
 	; Locals
 	index EQU [ebp - 4]
@@ -201,6 +201,7 @@ _MH_PercolateUp PROC uses eax ebx ecx edx ebp
 
 	; Macros
   Instance EQU (MinHeap PTR [ebx])
+	BInstance EQU (Board PTR [esi])
   ; *  *  *  *  *  *  *  *  *
 
 	mov ebx, this_ptr
@@ -214,7 +215,7 @@ _MH_PercolateUp PROC uses eax ebx ecx edx ebp
 	mov parent, eax
 
 	; While Conditions: (JS Style)
-	; while(parent !== 0 && (this.vector[index] < this.vector[parent])
+	; while(parent !== 0 && (this.vector[index].distance < this.vector[parent].distance)
 
 	WHILESTART:
 	  ; parent != 0
@@ -222,20 +223,25 @@ _MH_PercolateUp PROC uses eax ebx ecx edx ebp
 	  cmp eax, 0
 	  je WHILEEND
 	  
-		; edx = vector[index]
+		; edx = vector[index].distance
 	  mov ecx, index
 		push ecx
 		mov ecx, Instance.VectorPtr
 		push ecx
 		call V_At
-		mov edx, eax
+		
+		mov esi, eax
+		movzx edx, BInstance.Distance
 
-		; eax = vector[parent]
+		; eax = vector[parent].distance
 		mov ecx, parent
 		push ecx
 		mov ecx, Instance.VectorPtr
 		push ecx
 		call V_At
+
+		mov esi, eax
+		movzx eax, BInstance.Distance
 
 		; (edx < eax)?
 		cmp edx, eax
