@@ -17,6 +17,12 @@ MH_DeleteObj PROTO
 MH_Append PROTO
 MH_Remove PROTO
 
+; - - - - - - - - - - - - - - - - - - - - - -  - - -
+; Private Methods
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+; _MH_PercolateUp
+; _MH_PercolateDown
+
 ; - - - - - - - - - - - - - - - - - - - - - - - - -
 ; Dependencies
 ; - - - - - - - - - - - - - - - - - - - - - - - - -

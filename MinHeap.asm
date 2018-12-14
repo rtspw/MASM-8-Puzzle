@@ -103,12 +103,18 @@ MH_Append PROC uses eax ebx ecx ebp
   Instance EQU (MinHeap PTR [ebx])
   ; *  *  *  *  *  *  *  *  *
 	
+	; Increments heapsize (always vectorsize - 1)
 	mov ebx, this_ptr
 	inc Instance.HeapSize
 
+	; Adds value to vector
 	push val
 	push Instance.VectorPtr
 	call V_PushBack
+
+	; Heapify new element up
+	push this_ptr
+	call _MH_PercolateUp
 
 	LEAVE
 	RET 8 ; TWO PARAMS
@@ -172,5 +178,90 @@ MH_Remove PROC uses ebx ecx ebp
 	LEAVE
 	RET 4 ; ONE PARAMETER
 MH_Remove ENDP
+
+
+; PRIVATE PROCEDURES - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+_MH_PercolateUp PROC uses eax ebx ecx edx ebp 
+; Moves the newly appended element up the tree
+; according to minimum heap rules
+; Uses the distance as the value weight
+; @param this_ptr - Address to this
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 8, 0 ; TWO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 28]
+
+	; Locals
+	index EQU [ebp - 4]
+	parent EQU [ebp - 8]
+
+	; Macros
+  Instance EQU (MinHeap PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+
+	; Set index to heapsize (vectorSize - 1)
+	mov eax, Instance.HeapSize
+	mov index, eax
+
+	; Set parent to index / 2 (logical shift right)
+	shr eax, 1
+	mov parent, eax
+
+	; While Conditions: (JS Style)
+	; while(parent !== 0 && (this.vector[index] < this.vector[parent])
+
+	WHILESTART:
+	  ; parent != 0
+	  mov eax, parent
+	  cmp eax, 0
+	  je WHILEEND
+	  
+		; edx = vector[index]
+	  mov ecx, index
+		push ecx
+		mov ecx, Instance.VectorPtr
+		push ecx
+		call V_At
+		mov edx, eax
+
+		; eax = vector[parent]
+		mov ecx, parent
+		push ecx
+		mov ecx, Instance.VectorPtr
+		push ecx
+		call V_At
+
+		; (edx < eax)?
+		cmp edx, eax
+		jge WHILEEND
+
+
+		; V_Swap(this, parent, index);
+		mov ecx, index
+		push ecx
+		mov ecx, parent
+		push ecx
+		mov ecx, Instance.VectorPtr
+		push ecx
+		call V_Swap
+
+		; Set new index values before looping
+		mov ecx, parent
+		mov index, ecx
+
+		shr ecx, 1
+		mov parent, ecx
+
+		jmp WHILESTART
+	WHILEEND:
+
+	LEAVE
+	RET 4 ; ONE PARAMETER
+
+_MH_PercolateUp ENDP
 
 end

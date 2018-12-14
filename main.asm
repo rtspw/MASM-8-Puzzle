@@ -33,31 +33,48 @@ main PROC
 
 	call PrintTitleLogo
 
-	call B_CreateObj
-	
-	push 1
-	push 2
+	mov ecx, 1000
+
+	TESTLOOP:
+	call MH_CreateObj
+
 	push 3
-	push 4
+	push eax
+	call MH_Append
+
+	push 1
+	push eax
+	call MH_Append
+
 	push 5
-	push 6
+	push eax
+	call MH_Append
+
+	push 2
+	push eax
+	call MH_Append
+
+	push 1
+	push eax
+	call MH_Append
+
+	push 4
+	push eax
+	call MH_Append
+
+	push 9
+	push eax
+	call MH_Append
+
 	push 7
-	push 0
-	push 8
 	push eax
-	call B_SetupBoard
+	call MH_Append
 
 	push eax
-	push eax
-	call B_MakeCopy
-	push eax
-	call B_DeleteObj
-	pop eax
+	call MH_DeleteObj
+	loop TESTLOOP
 
-	push eax
-	call B_DeleteObj
-
-	;jmp quit
+	jmp quit
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  ;ALL NON-DEBUG LINES BELOW
