@@ -23,6 +23,7 @@ B_SwapRight PROTO
 B_SwapDown PROTO
 B_SwapLeft PROTO
 B_PrintBoard PROTO
+B_GetDistance PROTO
 
 ; File Methods
 B_ReadFile PROTO

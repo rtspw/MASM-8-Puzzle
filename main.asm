@@ -20,6 +20,7 @@ USER_INPUT_LENGTH = 1
 userInput BYTE USER_INPUT_LENGTH+1 DUP (?)
 
 GameBoardPtr DWORD ?
+numOfMoves DWORD 0
 
 .CODE
 
@@ -29,10 +30,12 @@ main PROC
 
 	call PrintTitleLogo
 
+	GAMESTART:
 	call PrintStartMenu
 	call ProcessStartUserInput
 	.IF (eax == 1)
 	  STARTNEWGAME:
+		mov numOfMoves, 0
 	  call ProcessFilenameInput
 		jmp BOARDCREATED
 	.ELSEIF (eax == 2)
@@ -44,39 +47,69 @@ main PROC
 
 	GAMELOOP:
 	  call CLRSCR
+
+		; Check for win condition
+		push GameBoardPtr
+		call B_GetDistance
+		.IF (eax == 0)
+		  jmp WIN
+		.ENDIF
+
+		inc numOfMoves
+
+		; Print board representation
 	  push GameBoardPtr
 		call B_PrintBoard
 
+		; Print and process selection
 	  call PrintGameMenu
 		call ProcessGameUserInput
 		.IF (eax == 1)
 			jmp STARTNEWGAME
+
 		.ELSEIF (eax == 2)
 			jmp GAMELOOP
+
 		.ELSEIF (eax == 3)
 		  push GameBoardPtr
 			call B_SwapUp
 			jmp GAMELOOP
+
 		.ELSEIF (eax == 4)
 		  push GameBoardPtr
 			call B_SwapDown
 			jmp GAMELOOP
+
 		.ELSEIF (eax == 5)
 		  push GameBoardPtr
 			call B_SwapLeft
 			jmp GAMELOOP
+
 		.ELSEIF (eax == 6)
 		  push GameBoardPtr
 			call B_SwapRight
 			jmp GAMELOOP
+
 		.ELSEIF (eax == 7)
 			jmp quit
+
 		.ENDIF
 		
 	ENDGAMELOOP:
 
 	jmp quit
 	WIN:
+		mWriteLn "CONGRATULATIONS! YOU WIN!"
+		mWrite "Number of moves: "
+
+		; Prints number of moves taken
+		dec numOfMoves
+		mov eax, numOfMoves
+		call WriteDec
+		call CRLF
+
+		; Restarts to start menu
+		jmp GAMESTART
 
   quit:
   EXIT

@@ -516,6 +516,28 @@ B_PrintBoard PROC uses eax ebx ecx edx ebp esi
 	RET 4     ; ONE PARAMETER
 B_PrintBoard ENDP
 
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+B_GetDistance PROC uses ebx ebp
+; Prints the board object to console
+; @param this_ptr - Pointer to instance
+; @return EAX - Distance member value
+; - - - - - - - - - - - - - - - - - - - - - - - - -
+	ENTER 0, 0 ; NO LOCALS
+	; *  *  *  *  *  *  *  *  *
+  ; Parameters
+  this_ptr EQU [ebp + 16] 
+
+  ; Macros
+  Instance EQU (Board PTR [ebx])
+  ; *  *  *  *  *  *  *  *  *
+
+	mov ebx, this_ptr
+	movzx eax, Instance.Distance
+
+	LEAVE
+	RET 4 ; ONE PARAM
+B_GetDistance ENDP
+
 
 
 ; FILE METHODS - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
