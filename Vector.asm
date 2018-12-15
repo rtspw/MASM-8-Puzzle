@@ -22,10 +22,6 @@ V_CreateObj PROC uses ecx edx
 
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new DWORD Vector at: "
-  call WriteHex
-  call CRLF
-
   ; Creates dynamic array for instance's root
   push eax
   call _V_Initialize
@@ -58,13 +54,10 @@ V_MakeCopy PROC uses ebx ecx edx ebp esi
 
   ; Creates new object and stores in EAX
   call V_CreateObj
-  mWrite "  Created a copied dword vector object at : "
-  call WriteHex
-  call CRLF
 
   .IF (ecx == 0)
     mWriteLn "Error in Vector.MakeCopy()! Array is empty."
-	jmp QUIT
+	  jmp QUIT
   .ENDIF
 
   COPYLOOP:
@@ -406,14 +399,9 @@ _V_Initialize PROC uses eax ebp esi
   ; If successful, store in ByteVector Object
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, StartingCapacity
   .IF eax == NULL
-	 ;mWriteLn "Failed to allocate vector root heap!"
-	 ;jmp QUIT
+	  mWriteLn "Failed to allocate vector root heap!"
+	  jmp QUIT
   .ELSE
-
-    mWrite "  Creating root dynamic dword array at (4 * 4 bytes): "
-	  call WriteHex
-	  call CRLF
-
     mov DWORD PTR [HeapAddress], eax
 	  add HeapAddress, TYPE DWORD
   .ENDIF
@@ -470,11 +458,6 @@ _V_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
 	  mWriteLn "Failed to allocate expanded vector root heap!"
   	jmp QUIT
   .ELSE
-
-    mWrite "  Creating expanded root vector at: "
-	  call WriteHex
-	  call CRLF
-
     mov new_array, eax
     mov IterNew, eax
   .ENDIF

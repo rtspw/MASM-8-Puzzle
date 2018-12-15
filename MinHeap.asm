@@ -35,10 +35,6 @@ MH_CreateObj PROC uses ebx ecx edx ebp
 
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new MinHeap Object at: "
-  call WriteHex
-  call CRLF
-
 	mov ebx, eax
 
 	; Creates DWORD vector object as VectorPtr value

@@ -34,11 +34,13 @@ main PROC
 
   call UTIL_SetColor
 
+	STARTPROGRAM:
+	call CLRSCR
 	call PrintTitleLogo
-
 	call PrintMetaMenu
 	call ProcessMetaUserInput
 
+	; Either run shortest path or manual gameplay
 	.IF (eax == 1)
 	  jmp ALGSTART
 	.ELSEIF (eax == 2)
@@ -54,6 +56,9 @@ main PROC
 	; Creates board from file
 	call ProcessFilenameInput
 	mov currentBoard, eax
+
+	push currentBoard
+	call B_PrintBoard
   
 	push currentBoard
 	call B_GetDistance
@@ -89,7 +94,7 @@ main PROC
 
 	jmp STARTPATH
 	SOLUTIONFOUND:
-	  mWriteLn "SOLUTION FOUND!!!"
+	  mWriteLn "SOLUTION FOUND"
 		mWriteLn "-------------------"
 		mWriteLn "1: Up | 2: Right | 3: Down | 4: Left"
 		mWriteLn "-------------------"
@@ -101,6 +106,8 @@ main PROC
 	  mWriteLn "Your board is already solved!"
 
 	FINISHED:
+	call WaitMsg
+	jmp STARTPROGRAM
 	jmp quit
 
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

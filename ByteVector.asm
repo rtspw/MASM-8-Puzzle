@@ -23,10 +23,6 @@ BV_CreateObj PROC uses ecx edx
 
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new Byte Vector at: "
-  call WriteHex
-  call CRLF
-
   ; Creates dynamic array for instance's root
   push eax
   call _BV_Initialize
@@ -59,13 +55,10 @@ BV_MakeCopy PROC uses ebx ecx edx ebp esi
 
   ; Creates new object and stores in EAX
   call BV_CreateObj
-  mWrite "  Created a copied byte vector object at : "
-  call WriteHex
-  call CRLF
 
   .IF (ecx == 0)
-    mWriteLn "Error in ByteVector.MakeCopy()! Array is empty."
-	jmp QUIT
+    ;mWriteLn "Error in ByteVector.MakeCopy()! Array is empty."
+	  jmp QUIT
   .ENDIF
 
   COPYLOOP:
@@ -376,10 +369,6 @@ _BV_Initialize PROC uses eax ebp esi
 	  jmp QUIT
 
   .ELSE
-    mWrite "  Creating root dynamic array at (4 bytes): "
-	  call WriteHex
-	  call CRLF
-
     mov DWORD PTR [esi], eax
 	  add esi, TYPE DWORD
   .ENDIF
@@ -432,13 +421,9 @@ _BV_ExpandCapacity PROC uses eax ebx ecx ebp esi edi
   movzx eax, Instance.VectorCapacity
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, eax
   .IF eax == NULL
-	mWriteLn "Failed to allocate expanded vector root heap!"
+	  mWriteLn "Failed to allocate expanded vector root heap!"
   	jmp QUIT
   .ELSE
-
-    mWrite "  Creating expanded root vector at: "
-	call WriteHex
-	call CRLF
 
     mov new_array, eax
     mov IterNew, eax

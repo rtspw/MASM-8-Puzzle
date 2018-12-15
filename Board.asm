@@ -38,10 +38,6 @@ B_CreateObj PROC uses ecx esi edx
 
   INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new Board at: "
-  call WriteHex
-  call CRLF
-
 	mov NewInstanceAddress, eax
 
   ; Creates byteVector for VectorPtr member
@@ -86,9 +82,6 @@ B_MakeCopy PROC uses ebx ecx edx ebp esi
 	; Allocates new space for a copy
 	INVOKE HeapAlloc, hHeap, HEAP_ZERO_MEMORY, mainByteSize
 
-  mWrite "Creating new copy Board at: "
-  call WriteHex
-  call CRLF
 	mov HeapIter, eax
 	mov CopyBoardPtr, eax
 
@@ -989,7 +982,7 @@ B_ReadFile PROC uses ebx ecx edx ebp esi
 	BufferIter EQU esi
   ; *  *  *  *  *  *  *  *  *
 
-	mWriteLn "  Reading a text file..."
+	mWriteLn "Reading a text file..."
 	; Stores board and vector pointers
 	mov ebx, this_ptr
 	mov eax, Instance.VectorPtr
@@ -1019,10 +1012,7 @@ B_ReadFile PROC uses ebx ecx edx ebp esi
 	; Adds null terminator at the end
 	mov buffer[9], 0
 
-	; DEBUG: Write buffer to console
 	mov edx, OFFSET buffer
-	call WriteString
-	call CRLF
 
 
 	; Sets ESI to the address of the dynamic array
@@ -1034,8 +1024,6 @@ B_ReadFile PROC uses ebx ecx edx ebp esi
 		movzx eax, BYTE PTR [BufferIter]
 		sub eax, 48  ; ASCII Number to Int
 		push eax
-		call WriteInt
-		call CRLF
 		inc BufferIter
 	loop FILETOBOARDLOOP
 
@@ -1043,12 +1031,12 @@ B_ReadFile PROC uses ebx ecx edx ebp esi
 	push ebx
   call B_SetupBoard
 
+	; Set success return value
+	mov eax, 1
+
 	jmp QUIT
 	SHOWERRORMSG:
 	  call WriteWindowsMsg
-
-	; Set success return value
-	mov eax, 1
 
 	QUIT:
 	LEAVE
@@ -1099,10 +1087,6 @@ _B_FindZeroPos PROC uses eax ebx ecx edx ebp esi
 	jmp NOTFOUND
 
 	FOUND:
-	  mWrite "  Zeropos Found: "
-	  call WriteInt
-		call CRLF
-
 		mov ebx, this_ptr
 		mov Instance.ZeroPos, al
 		jmp QUIT
@@ -1231,9 +1215,6 @@ _B_CalcDistance PROC uses eax ebx ecx edx ebp esi
 	jnz MATHLOOP
 
 	mov eax, totalDist
-	mWrite "  Distance calculated: "
-	call WriteDec
-	call CRLF
 	mov ebx, this_ptr
 	mov Instance.Distance, al
 
